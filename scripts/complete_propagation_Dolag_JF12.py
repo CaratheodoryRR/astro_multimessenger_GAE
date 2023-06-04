@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 from crpropa import *
+import numpy as np
 import UHECRs_sim_f as cpf
 
 # Print iterations progress
+# Copied from https://stackoverflow.com/questions/3173320/text-progress-bar-in-terminal-with-block-characters
 def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
@@ -19,10 +21,12 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
     bar = fill * filledLength + '-' * (length - filledLength)
-    print '\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), 
+    #print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd) # For python3
+    print '\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), # For python2
     # Print New Line on Complete
     if iteration == total: 
-        print '\n'
+        #print() # For python3
+        print '\n' # For python2
 
 def sim_settings(sim, model = IRB_Gilmore12(), minE = 1.*EeV):
     sim.add( Redshift() )
@@ -44,6 +48,12 @@ dirOutput = './'
 cpf.check_dir(dirOutput)
 fnameOutput = 'events'
 
+
+sources = np.genfromtxt('EG_sources.txt',names=True)
+
+# source
+sourcelist = SourceList()
+tau = 100. # Concentration parameter
 
 ##############################################################################################################
 #                                   EXTRAGALACTIC PROPAGATION (DOLAG MODEL)
@@ -82,22 +92,25 @@ sim.add(EG_obs)
 
 
 # source
-source = Source()
-source.add(SourcePosition(Vector3d(25, 0, 0) * Mpc))
-#source.add(SourceIsotropicEmission())
-source.add(SourceDirection())
-source.add(SourceParticleType(nucleusId(1, 1)))
-source.add(SourcePowerLawSpectrum(1 * EeV, 1000 * EeV, -2.3))
-#source.add( SourceRedshift() )
-print(source)
+sourcelist = SourceList()
+tau = 100. # Concentration parameter
+for source in sources:
+    s = Source()
+    v = Vector3d()
+    v.setRThetaPhi(source['Distance'], source['Longitude'], source['Latitude'])
+    s.add(SourcePosition(v * Mpc))
+    #s.add(SourceDirectedEmission( v.getUnitVector() * (-1.), tau )) # vMF distribution
+    s.add(SourceDirection( v.getUnitVector() * (-1.))) # Emission in one direction
+    s.add(SourceParticleType(nucleusId(1, 1)))
+    s.add(SourcePowerLawSpectrum(1 * EeV, 1000 * EeV, -2.3))
+    sourcelist.add(s, 1)
 
 # run simulation
 sim.setShowProgress(True)
-sim.run(source, 10**5)
+sim.run(sourcelist, 10**5)
 
 output.dump('{}{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
 #output.close()
-print('\n\tNumber of arriving particles: {}\n'.format(len(output)))
 
 
 ##############################################################################################################
