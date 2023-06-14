@@ -175,7 +175,7 @@ sim.add(G_obs)
 # observer2 (for speeding things up)
 test_obs = Observer()
 test_obs.add(ObserverSurface( Sphere(Vector3d(0), 21.*kpc) ))
-output2 = TextOutput('garbage_JF12.txt', Output.Event3D)
+output2 = TextOutput(f'{dirOutput}/garbage_JF12.txt', Output.Event3D)
 test_obs.onDetection( output2 )
 sim.add(test_obs)
 
