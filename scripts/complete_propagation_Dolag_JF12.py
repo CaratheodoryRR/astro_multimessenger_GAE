@@ -143,7 +143,7 @@ for source in sources:
 sim.setShowProgress(True)
 sim.run(sourcelist, 1000*args.num)
 
-output.dump('{}{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
+output.dump('{}/{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
 #output.close()
 
 
@@ -168,7 +168,7 @@ sim_settings(sim=sim, minE=stopE)
 # observer and output
 G_obs = Observer()
 G_obs.add(ObserverSurface( Sphere(Vector3d(-8.5*kpc, 0, 0), r_obs) ))
-output = TextOutput('{}{}_JF12.txt'.format(dirOutput,fnameOutput), Output.Event3D)
+output = TextOutput('{}/{}_JF12.txt'.format(dirOutput,fnameOutput), Output.Event3D)
 G_obs.onDetection( output )
 sim.add(G_obs)
 
@@ -181,7 +181,7 @@ sim.add(test_obs)
 
 
 input = ParticleCollector()
-input.load('{}{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
+input.load('{}/{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
 inputsize = len(input)
 
 print('\nNumber of candidates: {}\n'.format(inputsize))
