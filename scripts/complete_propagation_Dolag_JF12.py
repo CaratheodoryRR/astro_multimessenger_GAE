@@ -63,8 +63,8 @@ parser.add_argument('-e', '--maxEnergy', default=21, type=float,
                     help='Maximum emission energy exponent [10^e eV] (default: %(default)s)')
 parser.add_argument('-x', '--stopEnergy', type=float,
                     help='CRs below this energy exponent are discarded [10^d eV] (default: minEnergy)')
-parser.add_argument('-n', '--num', default=10**5, type=int,
-                    help='Total number of emitted cosmic rays (default: %(default)s)')
+parser.add_argument('-n', '--num', default=100, type=int,
+                    help='Total number of emitted cosmic rays, in thousands (default: %(default)s)')
 parser.add_argument('-b', '--bFactor', default=1e-4, type=float,
                     help='Scale factor for the EGMF (default: %(default)s)')
 
@@ -141,7 +141,7 @@ for source in sources:
 
 # run simulation
 sim.setShowProgress(True)
-sim.run(sourcelist, args.num)
+sim.run(sourcelist, 1000*args.num)
 
 output.dump('{}{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
 #output.close()
