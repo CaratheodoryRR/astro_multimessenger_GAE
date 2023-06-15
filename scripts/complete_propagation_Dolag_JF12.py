@@ -67,8 +67,8 @@ parser.add_argument('-n', '--num', default=100, type=int,
                     help='Total number of emitted cosmic rays, in thousands (default: %(default)s)')
 parser.add_argument('-b', '--bFactor', default=1e-4, type=float,
                     help='Scale factor for the EGMF (default: %(default)s)')
-
-# TODO: Include an optional tau argument for vMF Emission Distribution
+parser.add_argument('-t', '--tau', type=float,
+                    help='Concentration parameter for the vMF distribution (default: %(default)s)')
 
 args = parser.parse_args()
 
@@ -82,6 +82,11 @@ sources = np.genfromtxt(args.srcPath, names=True)
 # source
 sourcelist = SourceList()
 tau = 100. # Concentration parameter
+
+if not args.tau:
+    sourceEmission = lambda direction: SourceDirection( direction )
+else:
+    sourceEmission = lambda direction: SourceDirectedEmission( direction, args.tau )
 
 if not args.stopEnergy:
     args.stopEnergy = args.minEnergy
@@ -127,14 +132,13 @@ sim.add(EG_obs)
 
 # source
 sourcelist = SourceList()
-tau = 100. # Concentration parameter
+
 for source in sources:
     s = Source()
     v = Vector3d()
     v.setRThetaPhi(source['Distance'], source['Longitude'], source['Latitude'])
     s.add(SourcePosition(v * Mpc))
-    #s.add(SourceDirectedEmission( v.getUnitVector() * (-1.), tau )) # vMF distribution
-    s.add(SourceDirection( v.getUnitVector() * (-1.))) # Emission in one direction
+    s.add(sourceEmission(v.getUnitVector() * (-1.)))
     s.add(SourceParticleType(nucleusId(1, 1)))
     s.add(SourcePowerLawSpectrum(minE, maxE, -2.3))
     sourcelist.add(s, 1)
