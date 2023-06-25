@@ -1,35 +1,9 @@
-# -*- coding: utf-8 -*-
 from crpropa import *
 import numpy as np
 from src import UHECRs_sim_f as cpf
 from src import auger_data_he as pao
+from src import mod_functions as mf
 import argparse
-
-
-# Print iterations progress
-# Copied from https://stackoverflow.com/questions/3173320/text-progress-bar-in-terminal-with-block-characters
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        length      - Optional  : character length of bar (Int)
-        fill        - Optional  : bar fill character (Str)
-        printEnd    - Optional  : end character (e.g. "\r", "\r\n") (Str)
-    """
-    percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
-    filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    #print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd) # For python3
-    print '\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), # For python2
-    # Print New Line on Complete
-    if iteration == total: 
-        #print() # For python3
-        print '\n' # For python2
 
 def sim_settings(sim, model = IRB_Gilmore12(), minE = 1.*EeV):
     sim.add( Redshift() )
@@ -45,6 +19,40 @@ def sim_settings(sim, model = IRB_Gilmore12(), minE = 1.*EeV):
     sim.add(NuclearDecay())
     # Stop if particle reaches this energy 
     sim.add(MinimumEnergy(minE))
+    
+def setting_dolag_field(pathToDolag, bFactor):
+    # magnetic field setup
+    gridSize = 440
+    size = 186*Mpc
+    spacing = size/(gridSize)
+    boxOrigin = Vector3d(-0.5*size, -0.5*size, -0.5*size) 
+
+    vgrid = Grid3f(boxOrigin, gridSize, spacing)
+    loadGrid(vgrid, pathToDolag, bFactor)
+    
+    dolag_field = MagneticFieldGrid(vgrid)
+    
+    return dolag_field 
+
+def setting_jf12_field():
+    # magnetic field setup
+    jf12_field = JF12Field()
+    jf12_field.randomStriated()
+    jf12_field.randomTurbulent()
+    
+    return jf12_field
+
+    
+def setting_sources(sources, source_list, emission_func, vec_pos_func):
+    for source in sources:
+        s = Source()
+        v = Vector3d()
+        vec_pos_func(v, source)
+        s.add(SourcePosition(v * Mpc))
+        s.add(emission_func(v.getUnitVector() * (-1.)))
+        s.add(SourceParticleType(nucleusId(1, 1)))
+        s.add(SourcePowerLawSpectrum(minE, maxE, -2.3))
+        source_list.add(s, 1)
 
 
 parser = argparse.ArgumentParser(
@@ -69,6 +77,11 @@ parser.add_argument('-b', '--bFactor', default=1e-4, type=float,
                     help='Scale factor for the EGMF (default: %(default)s)')
 parser.add_argument('-t', '--tau', type=float,
                     help='Concentration parameter for the vMF distribution (default: %(default)s)')
+parser.add_argument('-p', '--parts', type=int, default=1,
+                    help='Divide the simulation into n parts (default: %(default)s)')
+parser.add_argument('-C', '--Coords', default='galactic',
+                    choices=['cartesian', 'spherical', 'galactic', 'icrs', 'supergalactic'],
+                    help='Coordinate system of the sources (default: %(default)s)')
 
 args = parser.parse_args()
 
@@ -78,122 +91,133 @@ fnameOutput = 'events'
 
 
 sources = np.genfromtxt(args.srcPath, names=True)
+sources = mf.coordinate_transformation_handler(sources, args.Coords)
 
-# source
-sourcelist = SourceList()
-tau = 100. # Concentration parameter
 
 if not args.tau:
-    sourceEmission = lambda direction: SourceDirection( direction )
+    source_emission = lambda direction: SourceDirection( direction )
 else:
-    sourceEmission = lambda direction: SourceDirectedEmission( direction, args.tau )
+    source_emission = lambda direction: SourceDirectedEmission( direction, args.tau )
 
 if not args.stopEnergy:
     args.stopEnergy = args.minEnergy
+    
+if args.Coords == 'spherical':
+    set_vector_position = lambda v, s: v.setRThetaPhi(s['R'], s['Theta'], s['Phi'])
+else:
+    set_vector_position = lambda v, s: v.setXYZ(s['X'], s['Y'], s['Z'])
+    
+fname_func = lambda ith, name, ext: '{0}/{1}_{4}_{2}_of_{3}.{5}'.format(dirOutput,
+                                                                        fnameOutput, 
+                                                                        ith, 
+                                                                        args.parts,
+                                                                        name,
+                                                                        ext)
+    
     
 minE = 10.**args.minEnergy * eV
 maxE = 10.**args.maxEnergy * eV
 stopE = 10.**args.stopEnergy * eV
 
+# Setting the magnetic fields
+Dolag_field = setting_dolag_field(pathToDolag=args.dolagPath, bFactor=args.bFactor)
+JF12_field = setting_jf12_field()
 ##############################################################################################################
 #                                   EXTRAGALACTIC PROPAGATION (DOLAG MODEL)
 ##############################################################################################################
-r_galaxy = 20.*kpc
-
-
-# magnetic field setup
-filename_bfield = args.dolagPath
-gridSize = 440
-size = 186*Mpc
-b_factor = args.bFactor
-spacing = size/(gridSize)
-obsPosition = Vector3d(0,0,0)                       
-boxOrigin = Vector3d(-0.5*size, -0.5*size, -0.5*size) 
-
-vgrid = Grid3f(boxOrigin, gridSize, spacing )
-loadGrid(vgrid, filename_bfield, b_factor)
-Dolag_field = MagneticFieldGrid(vgrid)
-
-
 # simulation setup
 sim = ModuleList()
+
+# Sources
+source_list = SourceList()
+setting_sources(sources=sources, 
+                source_list=source_list,
+                emission_func=source_emission,
+                vec_pos_func=set_vector_position)
+
+# Propagator
 sim.add(PropagationBP(Dolag_field, 1e-4, 1.*kpc, 1.*Mpc))
 
+# Interactions and break condition
 sim_settings(sim=sim, minE=stopE)
 
-# observer and output
+# Observer
+rGalaxy = 20.*kpc
 EG_obs = Observer()
-EG_obs.add(ObserverSurface( Sphere(Vector3d(0), r_galaxy) ))
+EG_obs.add(ObserverSurface( Sphere(Vector3d(0), rGalaxy) ))
+
+
 #output = TextOutput('{}_Dolag.txt'.format(fnameOutput), Output.Event3D)
 output = ParticleCollector()
 EG_obs.onDetection( output )
 sim.add(EG_obs)
 
 
-# source
-sourcelist = SourceList()
-
-for source in sources:
-    s = Source()
-    v = Vector3d()
-    v.setRThetaPhi(source['Distance'], source['Longitude'], source['Latitude'])
-    s.add(SourcePosition(v * Mpc))
-    s.add(sourceEmission(v.getUnitVector() * (-1.)))
-    s.add(SourceParticleType(nucleusId(1, 1)))
-    s.add(SourcePowerLawSpectrum(minE, maxE, -2.3))
-    sourcelist.add(s, 1)
+print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
 # run simulation
 sim.setShowProgress(True)
-sim.run(sourcelist, 1000*args.num)
+partNum = (args.num*1000) // args.parts
+dolagFileNames = [fname_func(ith=i+1,name='Dolag_part',ext='txt.gz') for i in range(args.parts)]
 
-output.dump('{}/{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
-#output.close()
+for i, dolagFileName in enumerate(dolagFileNames):
+    print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, args.parts))
+    sim.run(source_list, partNum)
 
+    output.dump(dolagFileName)
+    output.clearContainer()
 
 ##############################################################################################################
 #                                       GALACTIC PROPAGATION (JF12 MODEL)
 ##############################################################################################################
 
-r_obs = 1*kpc 
-
-# magnetic field setup
-JF12_field = JF12Field()
-JF12_field.randomStriated()
-JF12_field.randomTurbulent()
-
-# simulation setup
+# Simulation setup
 sim = ModuleList()
+
+# Propagator
 sim.add(PropagationBP(JF12_field, 1e-4, 0.1*pc, 1.*kpc))
 
+# Interactions and break condition
 sim_settings(sim=sim, minE=stopE)
 
-
-# observer and output
+# Observer 1 (Earth)
+rObs = 1*kpc 
 G_obs = Observer()
-G_obs.add(ObserverSurface( Sphere(Vector3d(-8.5*kpc, 0, 0), r_obs) ))
-output = TextOutput('{}/{}_JF12.txt'.format(dirOutput,fnameOutput), Output.Event3D)
-G_obs.onDetection( output )
-sim.add(G_obs)
+G_obs.add(ObserverSurface( Sphere(Vector3d(-8.5*kpc, 0, 0), rObs) ))
 
-# observer2 (for speeding things up)
+# Observer 2 (barely greater than the galaxy, for speeding things up)
 test_obs = Observer()
 test_obs.add(ObserverSurface( Sphere(Vector3d(0), 21.*kpc) ))
-output2 = TextOutput('{}/garbage_JF12.txt'.format(dirOutput), Output.Event3D)
-test_obs.onDetection( output2 )
-sim.add(test_obs)
 
+JF12FileNames = [fname_func(ith=i+1,name='JF12_part',ext='txt') for i in range(args.parts)]
+outputs = [TextOutput(fname, Output.Event3D) for fname in JF12FileNames]
+
+garbageFileNames = [fname_func(ith=i+1,name='garbage_JF12_part',ext='txt') for i in range(args.parts)]
+outputs2 = [TextOutput(fname, Output.Event3D) for fname in garbageFileNames]
+
+print('\n\n\t\tSECOND STAGE: GALACTIC PROPAGATION\n ')
 
 input = ParticleCollector()
-input.load('{}/{}_Dolag.txt.gz'.format(dirOutput,fnameOutput))
-inputsize = len(input)
-
-print('\nNumber of candidates: {}\n'.format(inputsize))
-
-for i,c in enumerate(input):
-    sim.run(c)
+sim.setShowProgress(True)
+for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, dolagFileNames)):
+    print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, args.parts))
+    input.load(dolagFileName)
     
-    printProgressBar(iteration=i+1, total=inputsize, prefix='Progress:', suffix='Complete')
+    inputsize = len(input)
+    print('Number of candidates: {}\n'.format(inputsize))
+    
+    G_obs.onDetection( output )
+    sim.add(G_obs)
 
+    test_obs.onDetection( output2 )
+    sim.add(test_obs)
+    
+    sim.run(input.getContainer())
+    
+    output.close()
+    output2.close()
+    
+    sim.remove(sim.size()-1)
+    sim.remove(sim.size()-1)
+    input.clearContainer()
 
-output.close()
