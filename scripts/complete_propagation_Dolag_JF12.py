@@ -50,8 +50,14 @@ def setting_sources(sources, source_list, emission_func, vec_pos_func):
         vec_pos_func(v, source)
         s.add(SourcePosition(v * Mpc))
         s.add(emission_func(v.getUnitVector() * (-1.)))
-        s.add(SourceParticleType(nucleusId(1, 1)))
-        s.add(SourcePowerLawSpectrum(minE, maxE, -2.3))
+        # setting composition at source
+        composition = SourceComposition(minE, maxE, -2.3)
+        composition.add(1,  1,  1)  # H
+        composition.add(4,  2,  1)  # He-4
+        composition.add(14, 7,  1)  # N-14
+        composition.add(28, 14,  1)  # Si-28
+        composition.add(56, 26, 1)  # Fe-56
+        s.add(composition)
         source_list.add(s, 1)
 
 
