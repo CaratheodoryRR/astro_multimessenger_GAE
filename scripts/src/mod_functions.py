@@ -2,6 +2,13 @@ import numpy as np
 import auger_data_he as pao
 from astropy.coordinates import SkyCoord
 import astropy.units as u
+import yaml
+
+def get_dict_from_yaml(pathToYAML):
+    with open(pathToYAML, 'r') as f:
+        yamlContent = f.read()
+    
+    return yaml.safe_load(yamlContent)
 
 def event_counter_by_energy(filename, bins = pao.ebins_, col = 2):
     
