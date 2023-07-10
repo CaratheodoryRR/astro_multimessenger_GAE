@@ -18,7 +18,7 @@ def sim_settings(sim, model = IRB_Gilmore12(), minE = 1.*EeV):
         
     sim.add(NuclearDecay())
     # Stop if particle reaches this energy 
-    sim.add(MinimumEnergy(minE))
+    sim.add(MinimumEnergy(cpf.minE))
     
 def setting_dolag_field(pathToDolag, bFactor):
     # magnetic field setup
@@ -43,21 +43,20 @@ def setting_jf12_field():
     return jf12_field
 
     
-def setting_sources(sources, source_list, emission_func, vec_pos_func):
+def setting_sources(sources, source_list, emission_func, vec_pos_func, spectrumStr, nucleiFracs):
+    
+    source_template = SourceGenericComposition(cpf.minE, cpf.maxE, spectrumStr, 10**5)
+    for z in nucleiFracs:
+        nuclearCode = nucleusId(cpf.A_Z[z][0], cpf.A_Z[z][1])
+        source_template.add(nuclearCode, nucleiFracs[z])
+        
     for source in sources:
         s = Source()
+        s.add(source_template)
         v = Vector3d()
         vec_pos_func(v, source)
         s.add(SourcePosition(v * Mpc))
         s.add(emission_func(v.getUnitVector() * (-1.)))
-        # setting composition at source
-        composition = SourceComposition(minE, maxE, -2.3)
-        composition.add(1,  1,  1)  # H
-        composition.add(4,  2,  1)  # He-4
-        composition.add(14, 7,  1)  # N-14
-        composition.add(28, 14,  1)  # Si-28
-        composition.add(56, 26, 1)  # Fe-56
-        s.add(composition)
         source_list.add(s, 1)
 
 
@@ -71,9 +70,9 @@ parser.add_argument('-D', '--dolagPath', default='../data/dolag_B_54-186Mpc_440b
                     help='Path to the Dolag EGMF raw file (default: %(default)s)')
 parser.add_argument('-o', '--outDir', default='./',
                     help='Directory to store the CRs output information (default: %(default)s)')
-parser.add_argument('-g', '--minEnergy', default=18, type=float, 
+parser.add_argument('-g', '--minEnergy', default=18., type=float, 
                     help='Minimum emission energy exponent [10^g eV] (default: %(default)s)')
-parser.add_argument('-e', '--maxEnergy', default=21, type=float, 
+parser.add_argument('-e', '--maxEnergy', default=21., type=float, 
                     help='Maximum emission energy exponent [10^e eV] (default: %(default)s)')
 parser.add_argument('-x', '--stopEnergy', type=float,
                     help='CRs below this energy exponent are discarded [10^d eV] (default: minEnergy)')
@@ -88,6 +87,12 @@ parser.add_argument('-p', '--parts', type=int, default=1,
 parser.add_argument('-C', '--Coords', default='galactic',
                     choices=['cartesian', 'spherical', 'galactic', 'icrs', 'supergalactic'],
                     help='Coordinate system of the sources (default: %(default)s)')
+parser.add_argument('-y', '--yamlFile', default='./fracs.yaml',
+                    help='File containing the nuclei relative abundances (default: %(default)s)')
+parser.add_argument('-a', '--alpha', default=2.3, type=float, 
+                    help='Power-Law exponent [dN/dE ~ E^-a] (default: %(default)s)')
+parser.add_argument('-r', '--rcut', default=20.5, type=float, 
+                    help='Rigidity breakpoint for the broken exponential cut-off function  [10^r V] (default: %(default)s)')
 
 args = parser.parse_args()
 
@@ -121,9 +126,14 @@ fname_func = lambda ith, name, ext: '{0}/{1}_{4}_{2}_of_{3}.{5}'.format(dirOutpu
                                                                         ext)
     
     
-minE = 10.**args.minEnergy * eV
-maxE = 10.**args.maxEnergy * eV
+cpf.minE = 10.**args.minEnergy * eV
+cpf.maxE = 10.**args.maxEnergy * eV
 stopE = 10.**args.stopEnergy * eV
+rcut = 10.**args.rcut * eV
+
+energySpectrum = '(E/EeV)^-{0}*( (E > Z*{1}) ? exp(1 - E/(Z*{1})) : 1 )'.format(args.alpha, rcut)
+
+nucleiFracs = mf.get_dict_from_yaml(args.yamlFile)
 
 # Setting the magnetic fields
 Dolag_field = setting_dolag_field(pathToDolag=args.dolagPath, bFactor=args.bFactor)
@@ -139,7 +149,9 @@ source_list = SourceList()
 setting_sources(sources=sources, 
                 source_list=source_list,
                 emission_func=source_emission,
-                vec_pos_func=set_vector_position)
+                vec_pos_func=set_vector_position,
+                spectrumStr = energySpectrum,
+                nucleiFracs=nucleiFracs)
 
 # Propagator
 sim.add(PropagationBP(Dolag_field, 1e-4, 1.*kpc, 1.*Mpc))
@@ -152,8 +164,12 @@ rGalaxy = 20.*kpc
 EG_obs = Observer()
 EG_obs.add(ObserverSurface( Sphere(Vector3d(0), rGalaxy) ))
 
+#outputs = []
+# for i in range(args.parts):
+#     fname = fname_func(ith=i+1, name='Dolag_part', ext='txt.gz')
+#     output = TextOutput(fname, Output.Event3D)
+#     output.enable(Output.SerialNumberColumn)
 
-#output = TextOutput('{}_Dolag.txt'.format(fnameOutput), Output.Event3D)
 output = ParticleCollector()
 EG_obs.onDetection( output )
 sim.add(EG_obs)
