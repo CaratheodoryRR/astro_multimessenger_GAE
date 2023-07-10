@@ -24,8 +24,8 @@ A_Z = {
 stop_energy = 1. # In EeV, used in MinimumEnergy()
 
 # Minimum and maximum energies (in EeV) for the source energy distribution (see variable energy at ...)
-min_E = 1.
-max_E = 1000.
+minE = 1.
+maxE = 1000.
 
 E_bins = 10**4 # Number of bins for the energy distribution
 n_E = 10**4 # Number of energy values taken from the energy distribution
@@ -181,7 +181,7 @@ def many_sources_1D_parts(rcut_g, nuclei_f, distances_and_weights, num, output_d
     check_dir(output_dir)
 
     # Energy distributions for each particle: H, He, N, Si, Fe
-    energies = np.linspace(min_E, max_E, E_bins)
+    energies = np.linspace(minE, maxE, E_bins)
     energy_Z = {} # Energy distribution per element
     #nuclei = map(lambda x: x.capitalize(), nuclei) #> BE CAREFUL HERE
 
@@ -270,7 +270,7 @@ def simulate_1D_1Source_1Element(rcut_g, distances, nuclei, num, title = "new_si
     check_dir(output_dir)
     
     # Energy distributions for each particle: H, He, N, Si, Fe
-    energies = np.linspace(min_E, max_E, E_bins)
+    energies = np.linspace(minE, maxE, E_bins)
     energy_Z = {} # Energy distribution per element
     Ntot = len(nuclei) * len(distances)
     nuclei = map(lambda x: x.capitalize(), nuclei)
