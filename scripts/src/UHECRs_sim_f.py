@@ -1,10 +1,14 @@
 from crpropa import *
-import numpy as np
+from pathlib import Path
+
 import auger_data_he as pao
 import matplotlib.pyplot as plt
 import sim_functions_he as sf
-import os
+import utils.file_utils as flu
+import numpy as np
 import time
+
+from src.utils.error_functions import *
 
 
 # Global variables
@@ -21,7 +25,7 @@ A_Z = {
 
 # Default values
 # --------------
-stop_energy = 1. # In EeV, used in MinimumEnergy()
+stopE = 1. # In EeV, used in MinimumEnergy()
 
 # Minimum and maximum energies (in EeV) for the source energy distribution (see variable energy at ...)
 minE = 1.
@@ -46,27 +50,6 @@ def fracs_dict_complete(nuclei):
             nuclei[z] = 0.
     return nuclei
     
-def not_empty_file(filename):
-    with open(filename, 'r') as readobj:
-        one_char = readobj.read(1)
-        if not one_char:
-            return False
-    return True
-
-
-# Checks if the directory exists. If it does not exist, we create it
-def check_dir(filename):
-    if not(os.path.exists(filename)):
-        os.mkdir(filename)
-        print("Creating directory: {}".format(filename))
-    return True
-
-# Similar to rm *.txt
-def del_by_extension(parent_dir, ext):
-    dir_names = [os.path.join(parent_dir, name) for name in os.listdir(parent_dir)]
-    for dir_name in dir_names:
-        if dir_name.endswith(ext):
-            os.remove(dir_name)
 
 def energy_distribution(Z, rcut_g, frac, E_dist):
     """
@@ -93,7 +76,7 @@ def sim_steps(sim, model):
         
     sim.add(NuclearDecay())
     # Stop if particle reaches this energy 
-    sim.add(MinimumEnergy(stop_energy*EeV))
+    sim.add(MinimumEnergy(stopE*EeV))
     
 
 def CR_sources(sourcelist, distance, element, energies, weight):
@@ -125,49 +108,6 @@ def event_counter_by_energy(filenames, bins = pao.ebins_, col = 3):
     
     return counts
 
-
-def err_parameter_handler(type_err, N_sim, N_pao=pao.auger_/pao.auger_[0]):
-    
-    if type_err == 'sqerr':
-        return squared_error(N_sim, N_pao)
-    
-    if type_err == 'sqlgerr':
-        return squared_log_error(N_sim, N_pao)
-    
-    if type_err == 'sqrlerr':
-        return squared_relative_error(N_sim, N_pao)
-    
-
-def squared_error(N_sim, N_pao):
-    diff = N_pao - N_sim
-    err_tot = np.sqrt( np.sum(diff**2) )
-    
-    return err_tot
-
-
-def squared_log_error(N_sim, N_pao):
-    
-    log_diff = 0.
-    for s, p in zip(N_sim, N_pao):
-        if p+s != 0.:
-            log_diff += ( np.log10(p/s)**2 if p*s != 0. else 4.*((p-s)/(p+s))**2 )
-        
-    log_err_tot = np.sqrt( log_diff )
-    
-    return log_err_tot
-
-
-def squared_relative_error(N_sim, N_pao):
-    
-    diff_sum = 0.
-    for s, p in zip(N_sim, N_pao):
-        if p+s != 0.:
-            diff_sum += ( (1. - s/p)**2 if p != 0. else 4.*((p-s)/(p+s))**2 )
-    
-    err_tot = np.sqrt( diff_sum )
-    
-    return err_tot
-
 # =================================================================================
 
 
@@ -178,7 +118,7 @@ def squared_relative_error(N_sim, N_pao):
 
 def many_sources_1D_parts(rcut_g, nuclei_f, distances_and_weights, num, output_dir, title = "new_simulation", model = "Gilmore12", parts = 1, seed = 0, sim_seed = 0):
 
-    check_dir(output_dir)
+    flu.check_dir(output_dir)
 
     # Energy distributions for each particle: H, He, N, Si, Fe
     energies = np.linspace(minE, maxE, E_bins)
@@ -216,7 +156,7 @@ def many_sources_1D_parts(rcut_g, nuclei_f, distances_and_weights, num, output_d
         # It could be improved to avoid fixed format
         filename = "{0}/{1}{2}.dat".format(output_dir, title, i_parts)
         # If the file already exists, we avoid to calculate it again
-        if (os.path.exists(filename)): continue           
+        if (Path(filename).exists): continue           
 
         print('\n\tPart {} of {} \n'.format(i_parts+1, parts))
 
@@ -267,7 +207,7 @@ def many_sources_1D_parts(rcut_g, nuclei_f, distances_and_weights, num, output_d
 def simulate_1D_1Source_1Element(rcut_g, distances, nuclei, num, title = "new_simulation", model = "Gilmore12", seed = 0, sim_seed = 0):
 
     output_dir = './output'
-    check_dir(output_dir)
+    flu.check_dir(output_dir)
     
     # Energy distributions for each particle: H, He, N, Si, Fe
     energies = np.linspace(minE, maxE, E_bins)
@@ -293,7 +233,7 @@ def simulate_1D_1Source_1Element(rcut_g, distances, nuclei, num, title = "new_si
 
             # Name of the file
             filename = '{3}/{0}_{1}_{2}.dat'.format(title, i_d, z, output_dir) 
-            if (os.path.exists(filename)): break           
+            if (Path(filename).exists): break           
 
             print('\n RUN {} of {} \n'.format(i_d*len(nuclei) + j_z + 1, Ntot))
             time_start = time.time()
@@ -363,7 +303,7 @@ def simulate_1D_1Source_1Element(rcut_g, distances, nuclei, num, title = "new_si
 def plot_counts_vs_distance(distances, nuclei, title, num, last_n_bins = 3):
     
     fileout = './counts_vs_distance'
-    check_dir(fileout)
+    flu.check_dir(fileout)
     lEbins = pao.ebins_[-3-last_n_bins:-2]  # logarithmic bins
     lEcens = (lEbins[1:] + lEbins[:-1]) / 2  # logarithmic bin centers
     it_d = range(len(distances)) # iterator for distance indexes
@@ -419,7 +359,7 @@ def plot_counts_vs_distance(distances, nuclei, title, num, last_n_bins = 3):
 
 def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', 'sqlgerr', 'sqrlerr'), plots_dir = './plots'):
     
-    check_dir(plots_dir)
+    flu.check_dir(plots_dir)
     
     mydata = "../distances_test.txt"
     distances = np.genfromtxt(mydata)
@@ -458,7 +398,7 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
             count = 0
             for i_parts in range(parts):
                 
-                if not_empty_file(files[i_parts]):
+                if flu.not_empty_file(files[i_parts]):
                     d = np.genfromtxt(files[i_parts], names=True)
                     d2 = np.genfromtxt(files[i_parts])
                         
@@ -563,5 +503,5 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
             minutes = (time.time() - time_start)/60.
             print('\n TIME: {:4f} minutes\n'.format(minutes))
             
-            del_by_extension(parent_dir=outdir, ext='dat')
+            flu.del_by_extension(parent_dir=outdir, exts='.dat')
 
