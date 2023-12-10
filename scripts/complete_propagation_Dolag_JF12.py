@@ -11,12 +11,12 @@ from pathlib import Path
 
 
 def run(
+    JF12_field, # JF12 field object
+    Dolag_field, # Dolag field grid
     srcPath = Path('../data/EG_sources.txt'), # Path to a text file containing source positions
     Coords = 'galactic', # Coordinate system used in `srcPath`
     outDir = Path('./'), # Path to the output directory
     yamlFile = Path('./fracs.yaml'), # Path to a YAML file containing relative CRs abundances
-    dolagPath = Path('../data/dolag_B_54-186Mpc_440b.raw'), # Path to Dolag's Extra-galactic model
-    bFactor = 1e-4, # Scale factor to Dolag's magnetic field
     maxEnergy = 21.0, # Maximum source energy (10^maxEnergy eV)
     minEnergy = 18.0, # Minimum source energy (10^minEnergy eV)
     stopEnergy = None, # Simulation's stopping energy (10^stopEnergy eV)
@@ -24,7 +24,7 @@ def run(
     rcut = 20.5, # Rigidity breakpoint for the broken exponential cut-off function (10^rcut V)
     alpha = 2.3, # Power-Law exponent (dN/dE ~ E^-alpha)
     num = 100, # Number of emitted CRs (in thousands)
-    parts = 1 # Divide the simulation into n parts (avoids segmentation faults due to insufficient memory)
+    parts = 1, # Divide the simulation into n parts (avoids segmentation faults due to insufficient memory)
 ):
     check_dir(outDir)
     del_by_extension(outDir, exts=('.gz', '.txt', '.dat'), recursive=True)
@@ -65,9 +65,6 @@ def run(
 
     nucleiFracs = get_dict_from_yaml(yamlFile)
 
-    # Setting the magnetic fields
-    Dolag_field = setting_dolag_field(pathToDolag=dolagPath, bFactor=bFactor)
-    JF12_field = setting_jf12_field()
     ##############################################################################################################
     #                                   EXTRAGALACTIC PROPAGATION (DOLAG MODEL)
     ##############################################################################################################
@@ -187,8 +184,6 @@ def run(
         sim.remove(sim.size()-1)
         sim.remove(sim.size()-1)
         input.clearContainer()
-    
-    del_by_extension(parentDir=Path(''), exts=('.pyc',), recursive=True)
 
 def args_parser_function():
     parser = argparse.ArgumentParser(
@@ -263,7 +258,15 @@ def setting_sources(sources, source_list, emission_func, vec_pos_func, spectrumS
         source_list.add(s, 1)
 
 def main(args):
-    run(**vars(args))
+    # Setting the magnetic fields
+    Dolag_field = setting_dolag_field(pathToDolag=args.dolagPath, bFactor=args.bFactor)
+    JF12_field = setting_jf12_field()
+    
+    delattr(args, 'dolagPath')
+    delattr(args, 'bFactor')
+    run(JF12_field=JF12_field, Dolag_field=Dolag_field, **vars(args))
+    
+    del_by_extension(parentDir=Path(''), exts=('.pyc',), recursive=True)
     
 if __name__ == '__main__':
     args = args_parser_function()
