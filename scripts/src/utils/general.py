@@ -11,12 +11,21 @@ def get_dict_from_yaml(pathToYAML):
     
     return yaml.safe_load(yamlContent)
 
-def event_counter_by_energy(filename, bins = pao.ebins_):
+def event_counter(fileName, bins):
     
-    data = np.genfromtxt(filename, names=['E', 'ID'])
+    data = np.genfromtxt(fileName, names=['E', 'ID'])
     energies = 18. + np.log10(data['E'])
     A = np.array([massNumber(id) for id in data['ID'].astype(int)])
     counts = np.histogram(energies[A >= 1], bins = bins)[0]
+    
+    return counts
+
+
+def events_from_files(fileNames, bins = pao.ebins_):
+    
+    counts = np.zeros(len(bins)-1)
+    for fName in fileNames:
+        counts += event_counter(fileName=fName, bins=bins)
     
     return counts
 
