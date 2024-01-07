@@ -21,7 +21,7 @@ def event_counter(fileName, bins):
     return counts
 
 
-def events_from_files(fileNames, bins = pao.ebins_):
+def events_from_files(fileNames, bins = pao.ebins):
     
     counts = np.zeros(len(bins)-1)
     for fName in fileNames:

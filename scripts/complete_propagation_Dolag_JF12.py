@@ -63,7 +63,7 @@ def run(
 
     energySpectrum = '(E/EeV)^-{0}*( (E > Z*{1}) ? exp(1 - E/(Z*{1})) : 1 )'.format(alpha, rcut)
 
-    nucleiFracs = get_dict_from_yaml(yamlFile)
+    nucleiFracs = yamlFile if isinstance(yamlFile, dict) else get_dict_from_yaml(yamlFile)
 
     ##############################################################################################################
     #                                   EXTRAGALACTIC PROPAGATION (DOLAG MODEL)

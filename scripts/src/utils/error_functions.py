@@ -1,7 +1,7 @@
 import numpy as np
 from .. import auger_data_he as pao
 
-def err_parameter_handler(errorType, simN, paoN=pao.auger_):
+def err_parameter_handler(errorType, simN, paoN=pao.auger):
     
     errorType = errorType.lower()
     

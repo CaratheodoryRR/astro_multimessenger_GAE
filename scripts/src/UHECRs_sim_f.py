@@ -35,7 +35,7 @@ E_bins = 10**4 # Number of bins for the energy distribution
 n_E = 10**4 # Number of energy values taken from the energy distribution
 # --------------
 
-pao_nbins = len(pao.ecens_)
+pao_nbins = len(pao.ecens)
 # =================================================================================
 
 
@@ -98,7 +98,7 @@ def CR_sources(sourcelist, distance, element, energies, weight):
         sourcelist.add(source, weight)
 
 
-def event_counter_by_energy(filenames, bins = pao.ebins_, col = 3):
+def event_counter_by_energy(filenames, bins = pao.ebins, col = 3):
     
     counts = np.zeros(len(bins)-1)
     for filename in filenames:
@@ -304,7 +304,7 @@ def plot_counts_vs_distance(distances, nuclei, title, num, last_n_bins = 3):
     
     fileout = './counts_vs_distance'
     flu.check_dir(fileout)
-    lEbins = pao.ebins_[-3-last_n_bins:-2]  # logarithmic bins
+    lEbins = pao.ebins[-3-last_n_bins:-2]  # logarithmic bins
     lEcens = (lEbins[1:] + lEbins[:-1]) / 2  # logarithmic bin centers
     it_d = range(len(distances)) # iterator for distance indexes
     
@@ -338,7 +338,7 @@ def plot_counts_vs_distance(distances, nuclei, title, num, last_n_bins = 3):
         
         for i in range(last_n_bins):
             ax.plot(distances, Nf[i], color=col[i], marker = marker[i], \
-            label='eCent = {0:.4f} (PAO = {1:,})'.format(lEcens[i], pao.auger_[-last_n_bins-2+i]))
+            label='eCent = {0:.4f} (PAO = {1:,})'.format(lEcens[i], pao.auger[-last_n_bins-2+i]))
         
         plt.legend(fontsize=12, frameon=True)  
         plt.xscale('symlog')
@@ -367,8 +367,8 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
 
     elements = ('H', 'He', 'N', 'Si', 'Fe')
     
-    lEbins = pao.ebins_  # logarithmic bins
-    lEcens = pao.ecens_  # logarithmic bin centers
+    lEbins = pao.ebins  # logarithmic bins
+    lEcens = pao.ecens  # logarithmic bin centers
     dE = pao.dE  # bin widths
     
     for plot_type in plot_types:
@@ -388,7 +388,7 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
             files = ["{0}/{1}{2}.dat".format(outdir, title, i_parts) for i_parts  in range(parts)]
             
             if plot_type == 'chi2':
-                tst = sf.chi2_global_auger_parts(title = title, parts = parts)
+                tst = sf.chi2_global_augerparts(title = title, parts = parts)
             else:
                 J_sim = event_counter_by_energy(filenames=files)/dE
                 J_sim /= J_sim[0] # Normalization
@@ -434,7 +434,7 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
                         count += 1
 
             #simulation errors
-            Jextra = J*(pao.auger_.sum())/(float(J.sum()))
+            Jextra = J*(pao.auger.sum())/(float(J.sum()))
 
             Jsimerror = np.sqrt(Jextra) / dE
             J1simerror = np.sqrt(J1) / dE
@@ -465,8 +465,8 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
             fig, ax = plt.subplots(figsize=(10,7))
 
             #J_Auger
-            ax.plot(lEcens, pao.Jauger_scaled, "ok", label = 'PAO data')
-            ax.errorbar(lEcens, pao.Jauger_scaled, yerr=pao.Jauger_err_scaled, fmt = "ok", markersize = msize)
+            ax.plot(lEcens, pao.Jaugerscaled, "ok", label = 'PAO data')
+            ax.errorbar(lEcens, pao.Jaugerscaled, yerr=pao.Jaugererr_scaled, fmt = "ok", markersize = msize)
             #Total
             ax.plot(lEcens, J,  color='red', label='Fitted model')
             ax.errorbar(lEcens, J, yerr=Jsimerror, fmt = "none", ecolor = 'black', color = 'none')
