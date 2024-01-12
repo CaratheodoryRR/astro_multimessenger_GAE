@@ -1254,9 +1254,9 @@ def chi2_global_augerparts(title = "new_simulation", parts = 1):
 	test = test/n_test
 	stest = test/n_test
 	
-	sigmas = sauger+ stest
+	sigmas = sauger_+ stest
 	test = test[sigmas != 0]
-	naugerb_ = nauger[sigmas != 0]
+	naugerb_ = nauger_[sigmas != 0]
 	sigmas = sigmas[sigmas != 0]
 	
 	#Compute arrays with chi2 value for each bin and each kind of particle
