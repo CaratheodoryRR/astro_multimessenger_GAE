@@ -49,10 +49,12 @@ ecens = np.arange(minBin, maxBin, binSize)
 ebins = np.arange(minBin-binSize/2, maxBin+binSize/2, binSize)
 dE = 10**ebins[1:] - 10**ebins[:-1]  # bin energy widths
 
-auger = [76176, 44904, 26843, 16970, 12109,
+auger = np.array(
+        [76176, 44904, 26843, 16970, 12109,
          8515, 5939, 4048, 2567, 1664,
          979, 619, 373, 152, 80,
-         23, 9, 6, 0, 0]
+         23, 9, 6, 0, 0],
+        dtype=np.float64)
 
 Jauger = auger / dE # Energy flux
 Jauger_scaled = Jauger / Jauger[0] # The first bin is always 1
