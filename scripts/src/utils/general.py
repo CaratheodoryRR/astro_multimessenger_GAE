@@ -2,6 +2,7 @@
 import numpy as np
 import yaml
 
+from crpropa import massNumber
 from .. import auger_data_he as pao
 from pathlib import Path
 
@@ -13,7 +14,7 @@ def get_dict_from_yaml(pathToYAML):
 
 def event_counter(fileName, bins):
     
-    data = np.genfromtxt(fileName, names=['E', 'ID'])
+    data = np.genfromtxt(fileName, names=True, usecols=('E', 'ID'))
     energies = 18. + np.log10(data['E'])
     A = np.array([massNumber(id) for id in data['ID'].astype(int)])
     counts = np.histogram(energies[A >= 1], bins = bins)[0]
