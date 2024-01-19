@@ -1,19 +1,22 @@
-from crpropa import *
+import argparse
 import numpy as np
+
+from crpropa import *
+from pathlib import Path
+
 from src import UHECRs_sim_f as cpf
 from src import auger_data_he as pao
 from src.utils.general import get_dict_from_yaml, print_args
 from src.utils.coords import coordinate_transformation_handler
 from src.utils.file_utils import check_dir, del_by_extension
 from src.loaders.fields import setting_dolag_field, setting_jf12_field
-import argparse
-from pathlib import Path
+
 
 
 def run(
     JF12_field, # JF12 field object
     Dolag_field, # Dolag field grid
-    srcPath = Path('../data/EG_sources.txt'), # Path to a text file containing source positions
+    srcPath = Path('../data/EG_3D_sources.txt'), # Path to a text file containing source positions
     Coords = 'galactic', # Coordinate system used in `srcPath`
     outDir = Path('./'), # Path to the output directory
     yamlFile = Path('./fracs.yaml'), # Path to a YAML file containing relative CRs abundances
@@ -25,6 +28,8 @@ def run(
     alpha = 2.3, # Power-Law exponent (dN/dE ~ E^-alpha)
     num = 100, # Number of emitted CRs (in thousands)
     parts = 1, # Divide the simulation into n parts (avoids segmentation faults due to insufficient memory)
+    rigLim = False, # Whether to use rigidity limits for source energy emissions
+    barProgress = True # Show the crpropa built-in bar progress 
 ):
     check_dir(outDir)
     del_by_extension(outDir, exts=('.gz', '.txt', '.dat'), recursive=True)
@@ -32,6 +37,8 @@ def run(
 
 
     sources = np.genfromtxt(srcPath, names=True)
+    redshiftPresent = 'Redshift' in sources.dtype.names    
+    redshifts = sources['Redshift'] if redshiftPresent else None
     sources = coordinate_transformation_handler(sources, Coords)
 
 
@@ -109,7 +116,7 @@ def run(
     print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
     # run simulation
-    sim.setShowProgress(True)
+    sim.setShowProgress(barProgress)
     partNum = (num*1000) // parts
     dolagFileNames = [fname_func(outPath=outDirEG,ith=i+1,name='Dolag_part',ext='txt.gz') for i in range(parts)]
     outputs = [TextOutput(fname, Output.Everything) for fname in dolagFileNames]
@@ -162,7 +169,7 @@ def run(
     print('\n\n\t\tSECOND STAGE: GALACTIC PROPAGATION\n ')
 
     input = ParticleCollector()
-    sim.setShowProgress(True)
+    sim.setShowProgress(barProgress)
     for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, dolagFileNames)):
         print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
         input.load(dolagFileName)
@@ -189,7 +196,7 @@ def args_parser_function():
     parser = argparse.ArgumentParser(
                     description='Cosmic ray propagation on both extragalactic (Dolag) and galactic (JF12) magnetic fields',
                     epilog='GAE-PUCP Astroparticle Physics')
-    parser.add_argument('-s', '--srcPath', default='../data/EG_sources.txt', type=Path,
+    parser.add_argument('-s', '--srcPath', default='../data/EG_3D_sources.txt', type=Path,
                         help='Path to the EG sources text file (default: %(default)s)')
     parser.add_argument('-D', '--dolagPath', default='../data/dolag_B_54-186Mpc_440b.raw', type=Path,
                         help='Path to the Dolag EGMF raw file (default: %(default)s)')
@@ -218,7 +225,9 @@ def args_parser_function():
                         help='Power-Law exponent [dN/dE ~ E^-a] (default: %(default)s)')
     parser.add_argument('-r', '--rcut', default=20.5, type=float, 
                         help='Rigidity breakpoint for the broken exponential cut-off function  [10^r V] (default: %(default)s)')
-
+    parser.add_argument('--rigLim', action='store_true', 
+                        help='Whether to use rigidity limits for source energy emissions (default: %(default)s)')
+    
     args = parser.parse_args()
     print_args(args)
     
