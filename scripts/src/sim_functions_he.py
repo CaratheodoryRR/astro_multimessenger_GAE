@@ -1202,7 +1202,7 @@ def chi2_global_auger(title = "new_simulation"):
 	stest = test/n_test
 	
 	#Compute arrays with chi2 value for each bin and each kind of particle
-	h = np.array(((nauger-test)**2)/(sauger+stest))
+	h = np.array(((nauger_-test)**2)/(sauger_+stest))
 	
 	h = h[np.isfinite(h)]
 
@@ -1305,9 +1305,9 @@ def chi2_global_augerrcut(title = "new_simulation",rcut = 21.):
 	test = test/n_test
 	stest = test/n_test
 	
-	sigmas = sauger+ stest
+	sigmas = sauger_+ stest
 	test = test[sigmas != 0]
-	naugerb_ = nauger[sigmas != 0]
+	naugerb_ = nauger_[sigmas != 0]
 	sigmas = sigmas[sigmas != 0]
 	
 	#Compute arrays with chi2 value for each bin and each kind of particle
@@ -1367,9 +1367,9 @@ def chi2_global_augerrcut_separate(fractions,title = "new_simulation",rcut = 21.
 	test = test/n_test
 	stest = test/n_test
 	
-	sigmas = sauger+ stest
+	sigmas = sauger_+ stest
 	test = test[sigmas != 0]
-	naugerb_ = nauger[sigmas != 0]
+	naugerb_ = nauger_[sigmas != 0]
 	sigmas = sigmas[sigmas != 0]
 	
 	#Compute arrays with chi2 value for each bin and each kind of particle

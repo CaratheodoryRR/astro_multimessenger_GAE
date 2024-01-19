@@ -3,6 +3,8 @@ from .. import auger_data_he as pao
 
 def err_parameter_handler(errorType, simN, paoN=pao.auger):
     
+    if simN.sum()==0: return np.inf
+    
     errorType = errorType.lower()
     
     if errorType == 'sqerr':
