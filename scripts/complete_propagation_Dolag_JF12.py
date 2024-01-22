@@ -5,12 +5,12 @@ from crpropa import *
 from pathlib import Path
 
 from src import UHECRs_sim_f as cpf
-from src import auger_data_he as pao
+from src.crpropa_building_blocks import prop_3D
 from src.utils.general import get_dict_from_yaml, print_args
-from src.utils.coords import coordinate_transformation_handler
 from src.utils.file_utils import check_dir, del_by_extension
+from src.utils.coords import coordinate_transformation_handler
 from src.loaders.fields import setting_dolag_field, setting_jf12_field
-
+from src.crpropa_building_blocks.prop_general import source_energy_spectrum
 
 
 def run(
@@ -29,6 +29,7 @@ def run(
     num = 100, # Number of emitted CRs (in thousands)
     parts = 1, # Divide the simulation into n parts (avoids segmentation faults due to insufficient memory)
     rigLim = False, # Whether to use rigidity limits for source energy emissions
+    noInteractions = False, # Deactivate all CRs interactions
     barProgress = True # Show the crpropa built-in bar progress 
 ):
     check_dir(outDir)
@@ -68,7 +69,7 @@ def run(
     cpf.stopE = 10.**stopEnergy * eV
     rcut = 10.**rcut * eV
 
-    energySpectrum = '(E/EeV)^-{0}*( (E > Z*{1}) ? exp(1 - E/(Z*{1})) : 1 )'.format(alpha, rcut)
+    energySpectrum = source_energy_spectrum(alpha, rcut)
 
     nucleiFracs = yamlFile if isinstance(yamlFile, dict) else get_dict_from_yaml(yamlFile)
 
@@ -84,34 +85,27 @@ def run(
 
     # Sources
     source_list = SourceList()
-    setting_sources(sources=sources, 
-                    source_list=source_list,
-                    emission_func=source_emission,
-                    vec_pos_func=set_vector_position,
-                    spectrumStr = energySpectrum,
-                    nucleiFracs=nucleiFracs)
+    prop_3D.set_sources_handler(rigidityLimits=rigLim,
+                                sources=sources,
+                                source_list=source_list,
+                                emission_func=source_emission,
+                                vec_pos_func=set_vector_position,
+                                spectrumStr=energySpectrum,
+                                nucleiFracs=nucleiFracs,
+                                redshifts=redshifts)
 
-    # Propagator
-    sim.add(PropagationBP(Dolag_field, 1e-4, 1.*kpc, 1.*Mpc))
-
-    # Interactions and break condition
-    sim_settings(sim=sim)
+    # Propagator, interactions and break condition
+    prop_3D.set_simulation(sim=sim,
+                           interactions=(not noInteractions),
+                           field=Dolag_field,
+                           tolerance=1e-4,
+                           minStep=1.*kpc,
+                           maxStep=1.*Mpc)
 
     # Observer
     rGalaxy = 20.*kpc
     EG_obs = Observer()
     EG_obs.add(ObserverSurface( Sphere(Vector3d(0), rGalaxy) ))
-
-    #outputs = []
-    # for i in range(parts):
-    #     fname = fname_func(ith=i+1, name='Dolag_part', ext='txt.gz')
-    #     output = TextOutput(fname, Output.Event3D)
-    #     output.enable(Output.SerialNumberColumn)
-
-    # output = ParticleCollector()
-    # EG_obs.onDetection( output )
-    # sim.add(EG_obs)
-
 
     print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
@@ -130,8 +124,6 @@ def run(
         print('Results successfully saved at {}'.format(dolagFileName))
         output.close()
         sim.remove(sim.size()-1)
-        # output.dump(dolagFileName)
-        # output.clearContainer()
 
     ##############################################################################################################
     #                                       GALACTIC PROPAGATION (JF12 MODEL)
@@ -145,11 +137,13 @@ def run(
     # Simulation setup
     sim = ModuleList()
 
-    # Propagator
-    sim.add(PropagationBP(JF12_field, 1e-4, 0.1*pc, 1.*kpc))
-
-    # Interactions and break condition
-    sim_settings(sim=sim)
+    # Propagator, interactions and break condition
+    prop_3D.set_simulation(sim=sim,
+                           interactions=(not noInteractions),
+                           field=JF12_field,
+                           tolerance=1e-4,
+                           minStep=1.*pc,
+                           maxStep=1.*kpc)
 
     # Observer 1 (Earth)
     rObs = 1*kpc 
@@ -158,7 +152,7 @@ def run(
 
     # Observer 2 (barely greater than the galaxy, for speeding things up)
     test_obs = Observer()
-    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 21.*kpc) ))
+    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.1*rGalaxy*kpc) ))
 
     JF12FileNames = [fname_func(outPath=outDirG,ith=i+1,name='JF12_part',ext='txt') for i in range(parts)]
     outputs = [TextOutput(fname, Output.Event3D) for fname in JF12FileNames]
@@ -232,39 +226,6 @@ def args_parser_function():
     print_args(args)
     
     return args
-
-
-def sim_settings(sim, model = IRB_Gilmore12()):
-    sim.add( Redshift() )
-
-    # Simulation processes
-    sim.add(PhotoPionProduction(CMB()))
-    sim.add(ElectronPairProduction(CMB()))
-    sim.add(PhotoDisintegration(CMB()))
-    sim.add(PhotoPionProduction(model))
-    sim.add(ElectronPairProduction(model))
-    sim.add(PhotoDisintegration(model))
-        
-    sim.add(NuclearDecay())
-    # Stop if particle reaches this energy 
-    sim.add(MinimumEnergy(cpf.stopE))
-
-    
-def setting_sources(sources, source_list, emission_func, vec_pos_func, spectrumStr, nucleiFracs):
-    
-    source_template = SourceGenericComposition(cpf.minE, cpf.maxE, spectrumStr, 10**5)
-    for z in nucleiFracs:
-        nuclearCode = nucleusId(cpf.A_Z[z][0], cpf.A_Z[z][1])
-        source_template.add(nuclearCode, nucleiFracs[z])
-        
-    for source in sources:
-        s = Source()
-        s.add(source_template)
-        v = Vector3d()
-        vec_pos_func(v, source)
-        s.add(SourcePosition(v * Mpc))
-        s.add(emission_func(v.getUnitVector() * (-1.)))
-        source_list.add(s, 1)
 
 def main(args):
     # Setting the magnetic fields

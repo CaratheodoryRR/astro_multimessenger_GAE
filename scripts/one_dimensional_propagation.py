@@ -1,13 +1,14 @@
-from crpropa import *
+import argparse
 import numpy as np
+
+from crpropa import *
+from pathlib import Path
+
 from src import UHECRs_sim_f as cpf
-from src import auger_data_he as pao
+from src.crpropa_building_blocks import prop_1D
 from src.utils.general import get_dict_from_yaml, print_args
 from src.utils.file_utils import check_dir, del_by_extension
-from src.crpropa_building_blocks import prop_1D
 from src.crpropa_building_blocks.prop_general import source_energy_spectrum
-import argparse
-from pathlib import Path
 
 
 def run(
