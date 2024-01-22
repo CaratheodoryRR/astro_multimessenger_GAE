@@ -12,6 +12,8 @@ ecens_ = np.array([18.7515, 18.8503, 18.9491, 19.0491,
                    19.55065, 19.6506, 19.7492, 19.84795, 
                    19.94775, 20.0486, 20.14955, 20.2492, 20.34795])
 
+dE_ = 10**ebins_[1:] - 10**ebins_[:-1]  # bin energy widths
+
 #Data collected from Auger
 auger1 = np.array([5338, 2039, 666, 181, 38, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])			#A=1
 auger2 = np.array([10550, 8036, 5566, 3442, 1759, 630, 135, 14, 0, 0, 0, 0, 0, 0, 0, 0, 0])		#2<A<4
@@ -39,6 +41,12 @@ sauger2 = nauger2/n_auger_
 sauger3 = nauger3/n_auger_
 sauger4 = nauger4/n_auger_
 sauger5 = nauger5/n_auger_
+
+Jauger_ = auger_ / dE_ # Energy flux
+Jauger_scaled_ = Jauger_ / Jauger_[0] # The first bin is always 1
+
+Jauger_err_ = np.sqrt(auger_) / dE_ # Flux error
+Jauger_err_scaled_ = Jauger_err_/ Jauger_[0]
 
 # Added by Christian
 # ==================
