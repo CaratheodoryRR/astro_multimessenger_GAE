@@ -1,9 +1,31 @@
 import numpy as np
 
+from pathlib import Path
 from scipy.stats import (levy_stable, uniform, norm)
 
 from ..utils.general import rescale_from_normal
 from .objective_functions import rcutRange, alphaRange
+
+def save_checkpoint(checkpointArr, outDir, gen):
+    numOfParams = checkpointArr.shape[1]-1
+    header = (22*' ').join(['param{}'.format(i+1) for i in range(numOfParams)] + ['chi2'])
+    np.savetxt(fname=outDir.joinpath('generation_{}.checkpoint'.format(gen)),
+               X=checkpointArr,
+               header=header,
+               delimiter='    ')
+
+def load_checkpoint(checkpointFile):
+    assert Path(checkpointFile).exists, 'Checkpoint file does not exist!'
+    arr = np.loadtxt(fname=checkpointFile)
+    return arr
+
+def from_raw_to_real(arr):
+    arrCopy = arr.copy()
+    arrCopy[:,:-3] = arr[:,:-3]/np.sum(arr[:,:-3], axis=1).reshape(-1,1)
+    arrCopy[:,-3] = rescale_from_normal(interval=rcutRange, value=arr[:,-3])
+    arrCopy[:,-2] = rescale_from_normal(interval=alphaRange, value=arr[:,-2])
+    
+    return arrCopy
 
 def periodic_bc(r, *args):
     
@@ -36,16 +58,29 @@ def gen_population(size, *args):
         
         return np.array(population).T
 
-def cuckoo_search(f, nHosts, pa, ranges, scale=1, maxIter=10**3, **kwargs):
+def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, loadCheckpoint=None, **kwargs):
     drop = int(round(nHosts*pa))
-    r = gen_population(nHosts, *ranges)
-    print('Generating initial population...')
-    pts = np.column_stack((r, f(r)))
     
+    if loadCheckpoint is not None:
+        print('Loading checkpoint {}'.format(loadCheckpoint))
+        pts = load_checkpoint(checkpointFile=loadCheckpoint)
+        ptNum = len(pts)
+        if ptNum > nHosts:
+            pts = pts[:nHosts]
+        elif ptNum < nHosts:
+            r = gen_population(nHosts-ptNum, *ranges)
+            print('Generating missing values...')
+            pts0 = np.column_stack((r, f(r)))
+            pts = np.row_stack((pts.copy(), pts0))
+    else:
+        r = gen_population(nHosts, *ranges)
+        print('Generating initial population...')
+        pts = np.column_stack((r, f(r)))
     
+    top3Old = pts[:3].copy()
     for i in range(maxIter):
         print('\n\n\nGENERATION {} OF {}'.format(i+1, maxIter))
-        rNew = levy_advance(r0=pts[:,:-1], scale=scale, **kwargs)
+        rNew = levy_advance(r0=pts[:,:-1], scale=1, **kwargs)
         rNew = periodic_bc(rNew, *ranges)
         print('\n\nLevy flight...')
         ptsNew = np.column_stack((rNew, f(rNew)))
@@ -54,6 +89,12 @@ def cuckoo_search(f, nHosts, pa, ranges, scale=1, maxIter=10**3, **kwargs):
         
         pts = np.where(np.expand_dims(ptsNew[:,-1], 1) < np.expand_dims(pts[:,-1], 1), ptsNew, pts)
         pts = pts[pts[:,-1].argsort()]          
+        
+        if (checkpointDir is not None) and ((pts[:3]!=top3Old).any() or i==maxIter-1):
+            top3Old = pts[:3].copy()
+            save_checkpoint(checkpointArr=pts,
+                            outDir=checkpointDir, 
+                            gen=i+1)
         
         rRand = gen_population(drop, *ranges)  
         print('\n\nRandom mutation...')
@@ -68,8 +109,6 @@ def cuckoo_search(f, nHosts, pa, ranges, scale=1, maxIter=10**3, **kwargs):
                                                                                                              value=best[-3]),
                                                                                          rescale_from_normal(interval=alphaRange, 
                                                                                                              value=best[-2])))
-    pts[:,:-3] = pts[:,:-3]/np.sum(pts[:,:-3], axis=1).reshape(-1,1)
-    pts[:,-3] = rescale_from_normal(interval=rcutRange, value=pts[:,-3])
-    pts[:,-2] = rescale_from_normal(interval=alphaRange, value=pts[:,-2])
-    return pts[:-drop]
+
+    return from_raw_to_real(arr=pts[:-drop])
         

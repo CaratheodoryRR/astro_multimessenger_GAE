@@ -30,4 +30,5 @@ def chi2_obj_func(runPropFunc, sample, **kwargs):
         simN = events_from_files(fileNames=eventFiles)
         chi2 = err_parameter_handler(errorType='chi2', simN=simN)
         chi2Container.append(chi2)
+    print parts*'\n'
     return np.array(chi2Container)
