@@ -1,5 +1,4 @@
 import numpy as np
-#from src.optimization import objective_functions as objf
 import src.optimization.objective_functions as objf
 
 from pathlib import Path
@@ -14,11 +13,12 @@ numOfParams = len(A_Z)+2
 #                                   PROPAGATION SIMULATION VARIABLES
 ##############################################################################################################
     
-root = '/home/caratheodory/development/astro-multimessenger-GAE/'
+root = '/home/caratheodory/development/astro_multimessenger_GAE/'
 sourcesFile = Path(root).joinpath('data/EG_1D_sources.txt')
 outDir = Path('./test_1D/')
 numThousands = 1
 noInteractions = True
+parts = 1
 check_dir(outDir)
 obj_func = lambda r: objf.chi2_obj_func(sample=r,
                                         runPropFunc=run1D,
@@ -26,24 +26,27 @@ obj_func = lambda r: objf.chi2_obj_func(sample=r,
                                         outDir=outDir,
                                         num=numThousands,
                                         noInteractions=noInteractions,
-                                        barProgress=False)
+                                        barProgress=False,
+                                        parts=parts)
 
 ##############################################################################################################
 #                                   CUCKOO SEARCH VARIABLES
 ##############################################################################################################
 nHosts = 10
 pa = 0.2
-scale = 1
 ranges = np.repeat(a=[[0,1]],
                    repeats=numOfParams,
                    axis=0)
-maxIter = 1
+maxIter = 20
+checkpointDir = outDir.joinpath('checkpoints')
+check_dir(checkpointDir)
 bfResult = cuckoo_search(f=obj_func,
                          nHosts=nHosts,
                          pa=pa,
                          ranges=ranges,
-                         scale=scale,
                          maxIter=maxIter,
+                         checkpointDir=checkpointDir,
+                         loadCheckpoint=checkpointDir.joinpath('generation_20.checkpoint'),
                          alpha=1.25,
                          beta=0)
 
