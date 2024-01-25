@@ -24,23 +24,43 @@ def get_dict_from_yaml(pathToYAML):
     
     return yaml.safe_load(yamlContent)
 
-def event_counter(fileName, bins):
+def lnA_stats(A, E, bins):
+    lnA = np.log(A)
+    E = np.asarray(E)
     
-    data = np.genfromtxt(fileName, names=True, usecols=('E', 'ID'))
+    container = []
+    l = len(bins) - 1
+    for i in range(l):
+        inBin = (bins[i] <= E) & (E <= bins[i+1])
+        lnAi = lnA[inBin]
+        element = [lnAi.mean(), lnAi.var()] if (lnAi.size > 0) else [np.nan, np.nan]
+        container.append(element)
+    
+    return np.array(container)
+
+def event_counter(data, bins):
+    
     energies = 18. + np.log10(data['E'])
     A = np.array([massNumber(id) for id in data['ID'].astype(int)])
     counts = np.histogram(energies[A >= 1], bins = bins)[0]
     
-    return counts
-
+    return counts, energies, A
 
 def events_from_files(fileNames, bins = pao.ebins):
     
+    E = []
+    A = []
     counts = np.zeros(len(bins)-1)
     for fName in fileNames:
-        counts += event_counter(fileName=fName, bins=bins)
+        data = np.genfromtxt(fName, names=True, usecols=('E', 'ID'))
+        cnt, engs, massn = event_counter(data, bins)
+        counts += cnt
+        E.extend(engs)
+        A.extend(massn)
     
-    return counts
+    lnAStats = lnA_stats(A, E, bins)
+    
+    return counts, lnAStats
 
 def print_args(args):
     argDict = vars(args)
