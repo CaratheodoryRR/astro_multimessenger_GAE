@@ -1,4 +1,5 @@
 import numpy as np
+import src.auger_data_he as pao
 import src.optimization.objective_functions as objf
 
 from pathlib import Path
@@ -21,6 +22,7 @@ outDir = Path('./test_{}/'.format(simType))
 numThousands = 10**4
 noInteractions = False
 minEnergy = 19.0
+idx = np.abs(pao.ebins - minEnergy).argmin()
 parts = 10
 check_dir(outDir)
 kw3d = {}
@@ -34,6 +36,7 @@ if simType=='3D':
 obj_func = lambda r: objf.chi2_obj_func(sample=r,
                                         runPropFunc=run1D if simType=='1D' else run3D,
                                         pattern='**/*prop*.dat' if simType=='1D' else '**/*events_JF12*.txt',
+                                        bins=pao.ebins[idx:],
                                         srcPath=sourcesFile,
                                         outDir=outDir,
                                         num=numThousands,
