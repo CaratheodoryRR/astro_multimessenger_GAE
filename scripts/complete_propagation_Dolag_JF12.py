@@ -38,6 +38,7 @@ def run(
 
 
     sources = np.genfromtxt(srcPath, names=True)
+    rMax = sources['Distance'].max()
     redshiftPresent = 'Redshift' in sources.dtype.names    
     redshifts = sources['Redshift'] if redshiftPresent else None
     sources = coordinate_transformation_handler(sources, Coords)
@@ -79,6 +80,8 @@ def run(
     
     outDirEG = outDir.joinpath('Extra-Galactic-part')
     check_dir(outDirEG)
+    garbageDir = outDir.joinpath('Garbage')
+    check_dir(garbageDir)
     
     # simulation setup
     sim = ModuleList()
@@ -106,6 +109,10 @@ def run(
     rGalaxy = 20.*kpc
     EG_obs = Observer()
     EG_obs.add(ObserverSurface( Sphere(Vector3d(0), rGalaxy) ))
+    
+    # Observer 2 (barely farther than the farthest, for speeding things up)
+    test_obs = Observer()
+    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.1*rMax*Mpc) ))
 
     print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
@@ -114,15 +121,24 @@ def run(
     partNum = (num*1000) // parts
     dolagFileNames = [fname_func(outPath=outDirEG,ith=i+1,name='Dolag_part',ext='txt.gz') for i in range(parts)]
     outputs = [TextOutput(fname, Output.Everything) for fname in dolagFileNames]
+    
+    garbageFileNames = [fname_func(outPath=garbageDir,ith=i+1,name='garbage_Dolag_part',ext='txt') for i in range(parts)]
+    outputs2 = [TextOutput(fname, Output.Event3D) for fname in garbageFileNames]
 
-    for i, (output, dolagFileName) in enumerate(zip(outputs, dolagFileNames)):
+    for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, dolagFileNames)):
         print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
+        
         EG_obs.onDetection( output )
         sim.add(EG_obs)
+        
+        test_obs.onDetection( output2 )
+        sim.add(test_obs)
+        
         sim.run(source_list, partNum)
         
         print('Results successfully saved at {}'.format(dolagFileName))
         output.close()
+        sim.remove(sim.size()-1)
         sim.remove(sim.size()-1)
 
     ##############################################################################################################
@@ -131,8 +147,6 @@ def run(
     
     outDirG = outDir.joinpath('Galactic-part')
     check_dir(outDirG)
-    garbageDir = outDir.joinpath('Garbage')
-    check_dir(garbageDir)
     
     # Simulation setup
     sim = ModuleList()
@@ -141,8 +155,8 @@ def run(
     prop_3D.set_simulation(sim=sim,
                            interactions=(not noInteractions),
                            field=JF12_field,
-                           tolerance=1e-4,
-                           minStep=1.*pc,
+                           tolerance=5e-4,
+                           minStep=10.*pc,
                            maxStep=1.*kpc)
 
     # Observer 1 (Earth)
@@ -229,8 +243,11 @@ def args_parser_function():
 
 def main(args):
     # Setting the magnetic fields
+    print('Setting up Dolag Extragalactic Magnetic Field...')
     Dolag_field = setting_dolag_field(pathToDolag=args.dolagPath, bFactor=args.bFactor)
+    print('Done!\nSetting up JF12 Galactic Magnetic Field...')
     JF12_field = setting_jf12_field()
+    print('Done!')
     
     delattr(args, 'dolagPath')
     delattr(args, 'bFactor')
