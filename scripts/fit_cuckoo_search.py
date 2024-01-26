@@ -33,6 +33,7 @@ if simType=='3D':
     
 obj_func = lambda r: objf.chi2_obj_func(sample=r,
                                         runPropFunc=run1D if simType=='1D' else run3D,
+                                        pattern='**/*prop*.dat' if simType=='1D' else '**/*events_JF12*.txt',
                                         srcPath=sourcesFile,
                                         outDir=outDir,
                                         num=numThousands,

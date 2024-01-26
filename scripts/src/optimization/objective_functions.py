@@ -13,7 +13,7 @@ rcutRange = [19., 21.]
 alphaRange = [1., 3.]
 orderedNuclei = sorted(A_Z.keys(), key=lambda z: A_Z[z])
 
-def chi2_obj_func(runPropFunc, sample, **kwargs):
+def chi2_obj_func(runPropFunc, sample, pattern, **kwargs):
     chi2Container = []
     parts = kwargs.get('parts') if (kwargs.get('parts') is not None) else 1
     for fracs, (rcut, alpha) in tqdm(zip(sample[:,:-2], sample[:,-2:])):
@@ -26,7 +26,7 @@ def chi2_obj_func(runPropFunc, sample, **kwargs):
         
         
         print parts*'\033[A'+'\r',
-        eventFiles = Path(kwargs.get('outDir')).glob('**/*prop*.dat')
+        eventFiles = Path(kwargs.get('outDir')).glob(pattern)
         simN, lnAStats = events_from_files(fileNames=eventFiles)
         chi2 = err_parameter_handler(errorType='chi2', simN=simN)
         chi2Container.append(chi2)
