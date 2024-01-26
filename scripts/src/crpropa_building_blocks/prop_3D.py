@@ -35,7 +35,7 @@ def set_sources_energy_limits(sources, source_list, emission_func, vec_pos_func,
         if redshifts is not None: s.add( SourceRedshift(redshifts[i]) )
         source_list.add(s, 1)
 
-def set_sources_rigidity_limits(sources, source_list, emission_func, vec_pos_func, spectrumStr, nucleiFracs):
+def set_sources_rigidity_limits(sources, source_list, emission_func, vec_pos_func, spectrumStr, nucleiFracs, redshifts=None):
     
     for nucleus in nucleiFracs:
         A, Z = cpf.A_Z[nucleus]
@@ -43,11 +43,12 @@ def set_sources_rigidity_limits(sources, source_list, emission_func, vec_pos_fun
         nuclearCode = nucleusId(A, Z)
         source_template.add(nuclearCode, 1)
         
-        for source in sources:
+        for i,source in enumerate(sources):
             s = Source()
             s.add(source_template)
             v = Vector3d()
             vec_pos_func(v, source)
             s.add(SourcePosition(v * Mpc))
             s.add(emission_func(v.getUnitVector() * (-1.)))
+            if redshifts is not None: s.add( SourceRedshift(redshifts[i]) )
             source_list.add(s, nucleiFracs[nucleus])
