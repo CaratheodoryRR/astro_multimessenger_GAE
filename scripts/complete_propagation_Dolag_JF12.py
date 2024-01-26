@@ -101,8 +101,8 @@ def run(
     prop_3D.set_simulation(sim=sim,
                            interactions=(not noInteractions),
                            field=Dolag_field,
-                           tolerance=1e-4,
-                           minStep=1.*kpc,
+                           tolerance=5e-4,
+                           minStep=0.1*Mpc,
                            maxStep=1.*Mpc)
 
     # Observer
@@ -112,7 +112,7 @@ def run(
     
     # Observer 2 (barely farther than the farthest, for speeding things up)
     test_obs = Observer()
-    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.1*rMax*Mpc) ))
+    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rMax*Mpc) ))
 
     print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
@@ -156,7 +156,7 @@ def run(
                            interactions=(not noInteractions),
                            field=JF12_field,
                            tolerance=5e-4,
-                           minStep=10.*pc,
+                           minStep=0.1*kpc,
                            maxStep=1.*kpc)
 
     # Observer 1 (Earth)
@@ -166,7 +166,7 @@ def run(
 
     # Observer 2 (barely greater than the galaxy, for speeding things up)
     test_obs = Observer()
-    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.1*rGalaxy*kpc) ))
+    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rGalaxy*kpc) ))
 
     JF12FileNames = [fname_func(outPath=outDirG,ith=i+1,name='JF12_part',ext='txt') for i in range(parts)]
     outputs = [TextOutput(fname, Output.Event3D) for fname in JF12FileNames]
