@@ -1,5 +1,14 @@
 import numpy as np
 
+def ratio_and_error(x, y, dx, dy):
+    rx2 = (dx/x)**2
+    ry2 = (dy/y)**2
+    
+    ratio = x/y
+    ratioError = ratio*np.sqrt(rx2 + ry2)
+    
+    return ratio, ratioError
+
 #Energy bins for the histograms Auger
 ebins_ = np.array([18.702, 18.801, 18.8996, 18.9986, 
                    19.0996, 19.2006, 19.3002, 19.3997, 
@@ -43,10 +52,13 @@ sauger4 = nauger4/n_auger_
 sauger5 = nauger5/n_auger_
 
 Jauger_ = auger_ / dE_ # Energy flux
-Jauger_scaled_ = Jauger_ / Jauger_[0] # The first bin is always 1
-
 Jauger_err_ = np.sqrt(auger_) / dE_ # Flux error
-Jauger_err_scaled_ = Jauger_err_/ Jauger_[0]
+
+# The first bin is always 1
+Jauger_scaled_, Jauger_err_scaled_ = ratio_and_error(x=Jauger_,
+                                                  dx=Jauger_err_,
+                                                   y=Jauger_[0],
+                                                  dy=Jauger_err_[0])
 
 # Added by Christian
 # ==================
@@ -65,8 +77,11 @@ auger = np.array(
         dtype=np.float64)
 
 Jauger = auger / dE # Energy flux
-Jauger_scaled = Jauger / Jauger[0] # The first bin is always 1
-
 Jauger_err = np.sqrt(auger) / dE # Flux error
-Jauger_err_scaled = Jauger_err / Jauger[0]
+
+# The first bin is always 1
+Jauger_scaled, Jauger_err_scaled = ratio_and_error(x=Jauger,
+                                                  dx=Jauger_err,
+                                                   y=Jauger[0],
+                                                  dy=Jauger_err[0])
 # ==================
