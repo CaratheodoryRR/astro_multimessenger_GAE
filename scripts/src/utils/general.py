@@ -48,19 +48,21 @@ def event_counter(data, bins):
 
 def events_from_files(fileNames, bins = pao.ebins):
     
-    E = []
-    A = []
+    lnAContainer = []
     counts = np.zeros(len(bins)-1)
     for fName in fileNames:
         data = np.genfromtxt(fName, names=True, usecols=('E', 'ID'))
         cnt, engs, massn = event_counter(data, bins)
         counts += cnt
-        E.extend(engs)
-        A.extend(massn)
+        
+        lnAContainer.append(lnA_stats(massn, engs, bins))
     
-    lnAStats = lnA_stats(A, E, bins)
+    lnA = np.array(lnAContainer)
     
-    return counts, lnAStats
+    lnAStats = np.nanmean(lnA, axis=0)
+    lnAErrors = np.sqrt(np.nanvar(lnA, axis=0))
+    
+    return counts, lnAStats, lnAErrors
 
 def print_args(args):
     argDict = vars(args)
