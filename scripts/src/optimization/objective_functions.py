@@ -28,7 +28,7 @@ def chi2_obj_func(runPropFunc, sample, pattern, bins=pao.ebins, **kwargs):
         
         print parts*'\033[A'+'\r',
         eventFiles = Path(kwargs.get('outDir')).glob(pattern)
-        simN, lnAStats = events_from_files(fileNames=eventFiles, bins=bins)
+        simN, lnAStats, lnAErrors = events_from_files(fileNames=eventFiles, bins=bins)
         idx = np.abs(pao.ebins-bins[0]).argmin()
         chi2 = err_parameter_handler(errorType='chi2', simN=simN, paoN=pao.auger[idx:idx+len(bins)])
         chi2Container.append(chi2)

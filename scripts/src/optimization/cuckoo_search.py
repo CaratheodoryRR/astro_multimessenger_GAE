@@ -109,6 +109,8 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
                                                                                                              value=best[-3]),
                                                                                          rescale_from_normal(interval=alphaRange, 
                                                                                                              value=best[-2])))
-
+    
+    pts = pts[pts[:,-1].argsort()]
+    save_checkpoint(checkpointArr=pts, outDir=checkpointDir, gen='last')
     return from_raw_to_real(arr=pts[:-drop])
         
