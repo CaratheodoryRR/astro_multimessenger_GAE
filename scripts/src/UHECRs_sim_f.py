@@ -8,7 +8,7 @@ import utils.file_utils as flu
 import numpy as np
 import time
 
-from src.utils.error_functions import *
+from .utils.error_functions import *
 
 
 # Global variables
