@@ -6,12 +6,14 @@ from pathlib import Path
 
 from src import UHECRs_sim_f as cpf
 from src.crpropa_building_blocks import prop_3D
+from src.utils import file_utils as flu
 from src.utils.general import get_dict_from_yaml, print_args
-from src.utils.file_utils import check_dir, del_by_extension
 from src.utils.coords import coordinate_transformation_handler
 from src.loaders.fields import setting_dolag_field, setting_jf12_field
 from src.crpropa_building_blocks.prop_general import source_energy_spectrum
 
+# We model the galaxy as a sphere of radius 20 kpc
+rGalaxy = 20.*kpc
 
 def run(
     JF12_field, # JF12 field object
@@ -30,32 +32,17 @@ def run(
     parts = 1, # Divide the simulation into n parts (avoids segmentation faults due to insufficient memory)
     rigLim = False, # Whether to use rigidity limits for source energy emissions
     noInteractions = False, # Deactivate all CRs interactions
-    barProgress = True # Show the crpropa built-in bar progress 
+    barProgress = True, # Show the crpropa built-in bar progress
+    prop = 'both' # Propagation stages to consider in the simulation ['both', 'extra-galactic', 'galactic']
 ):
-    check_dir(outDir)
-    del_by_extension(outDir, exts=('.gz', '.txt', '.dat'), recursive=True)
+    flu.check_dir(outDir)
+    if prop != 'galactic': flu.del_by_extension(outDir, exts=('.gz', '.txt', '.dat'), recursive=True)
     fnameOutput = 'events'
 
-
-    sources = np.genfromtxt(srcPath, names=True)
-    rMax = sources['Distance'].max()
-    redshiftPresent = 'Redshift' in sources.dtype.names    
-    redshifts = sources['Redshift'] if redshiftPresent else None
-    sources = coordinate_transformation_handler(sources, Coords)
-
-
-    if tau is None:
-        source_emission = lambda direction: SourceDirection( direction )
-    else:
-        source_emission = lambda direction: SourceDirectedEmission( direction, tau )
+    srcType = 'grid' if str(srcPath).endswith('.raw') else 'point-like'
 
     if stopEnergy is None:
         stopEnergy = minEnergy
-        
-    if Coords == 'spherical':
-        set_vector_position = lambda v, s: v.setRThetaPhi(s['R'], s['Theta'], s['Phi'])
-    else:
-        set_vector_position = lambda v, s: v.setXYZ(s['X'], s['Y'], s['Z'])
         
     fname_func = lambda outPath, ith, name, ext: '{0}/{1}_{4}_{2}_of_{3}.{5}'.format(outPath,
                                                                                      fnameOutput, 
@@ -70,97 +57,127 @@ def run(
     cpf.stopE = 10.**stopEnergy * eV
     rcut = 10.**rcut * eV
 
-    energySpectrum = source_energy_spectrum(alpha, rcut)
-
-    nucleiFracs = yamlFile if isinstance(yamlFile, dict) else get_dict_from_yaml(yamlFile)
-
+    kwargsProp = {}
+    kwargsProp['srcPath'] = srcPath
+    kwargsProp['spectrumStr'] = source_energy_spectrum(alpha, rcut)
+    kwargsProp['nucleiFracs'] = yamlFile if isinstance(yamlFile, dict) else get_dict_from_yaml(yamlFile)
+    kwargsProp['rigidityLimits'] = rigLim
+    if srcType == 'point-like':
+        kwargsProp['Coords'] = Coords
+        kwargsProp['tau'] = tau
+    
+    filesDict = {}
     ##############################################################################################################
     #                                   EXTRAGALACTIC PROPAGATION (DOLAG MODEL)
     ##############################################################################################################
     
     outDirEG = outDir.joinpath('Extra-Galactic-part')
-    check_dir(outDirEG)
+    flu.check_dir(outDirEG)
     garbageDir = outDir.joinpath('Garbage')
-    check_dir(garbageDir)
+    flu.check_dir(garbageDir)
     
+    filesDict['extra-galactic'] = [fname_func(outPath=outDirEG,ith=i+1,name='Dolag_part',ext='txt.gz') for i in range(parts)]
+    
+    fileIntegrity = [(Path(f).exists() and flu.not_empty_file(f)) for f in filesDict['extra-galactic']]
+    
+    if prop != 'galactic' or not all(fileIntegrity):
+        partNum = (num*1000) // parts
+        
+        run_extra_galactic_part(filesDict={'extra-galactic':[f for (f, integrity) in zip(filesDict['extra-galactic'], fileIntegrity) if not integrity],
+                                           'garbage':[fname_func(outPath=garbageDir,
+                                                      ith=i+1,
+                                                      name='garbage_Dolag_part',
+                                                      ext='txt') for (i, integrity) in enumerate(fileIntegrity) if not integrity]},
+                                kwargsProp=kwargsProp,
+                                srcType=srcType,
+                                partNum=partNum,
+                                field=Dolag_field,
+                                interactions=(not noInteractions),
+                                barProgress=barProgress,
+                                tolerance=5e-4,
+                                minStep=0.1*Mpc,
+                                maxStep=1.*Mpc)
+    
+    ##############################################################################################################
+    #                                       GALACTIC PROPAGATION (JF12 MODEL)
+    ##############################################################################################################
+    
+    outDirG = outDir.joinpath('Galactic-part')
+    flu.check_dir(outDirG)
+    
+    if prop != 'extra-galactic':
+        filesDict['galactic'] = [fname_func(outPath=outDirG,ith=i+1,name='JF12_part',ext='txt') for i in range(parts)]
+        filesDict['garbage'] = [fname_func(outPath=garbageDir,ith=i+1,name='garbage_JF12_part',ext='txt') for i in range(parts)]
+        
+        run_galactic_part(filesDict=filesDict,
+                          rObs=1*kpc,
+                          field=JF12_field,
+                          interactions=(not noInteractions),
+                          barProgress=barProgress,
+                          tolerance=5e-4,
+                          minStep=0.1*kpc,
+                          maxStep=1.*kpc)
+
+
+def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, **kwargsSim):
+
     # simulation setup
     sim = ModuleList()
 
     # Sources
-    source_list = SourceList()
-    prop_3D.set_sources_handler(rigidityLimits=rigLim,
-                                sources=sources,
-                                source_list=source_list,
-                                emission_func=source_emission,
-                                vec_pos_func=set_vector_position,
-                                spectrumStr=energySpectrum,
-                                nucleiFracs=nucleiFracs,
-                                redshifts=redshifts)
-
+    sources = prop_3D.set_sources_handler(srcType, **kwargsProp)
+    if srcType == 'grid':
+        fixedPoint = Vector3d()
+        customSourceFeature = prop_3D.SourceDirectionTowardsPoint(fixedPoint)
+        sources.add( customSourceFeature )
     # Propagator, interactions and break condition
-    prop_3D.set_simulation(sim=sim,
-                           interactions=(not noInteractions),
-                           field=Dolag_field,
-                           tolerance=5e-4,
-                           minStep=0.1*Mpc,
-                           maxStep=1.*Mpc)
+    cpf.maxTrajectoryL = 200. * Mpc
+    prop_3D.set_simulation(sim=sim, **kwargsSim)
 
     # Observer
-    rGalaxy = 20.*kpc
     EG_obs = Observer()
     EG_obs.add(ObserverSurface( Sphere(Vector3d(0), rGalaxy) ))
     
     # Observer 2 (barely farther than the farthest, for speeding things up)
     test_obs = Observer()
-    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rMax*Mpc) ))
+    test_obs.add(ObserverSurface( Sphere(Vector3d(0), prop_3D.farthestSourceDistance.get(srcType)) ))
 
     print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
     # run simulation
-    sim.setShowProgress(barProgress)
-    partNum = (num*1000) // parts
-    dolagFileNames = [fname_func(outPath=outDirEG,ith=i+1,name='Dolag_part',ext='txt.gz') for i in range(parts)]
-    outputs = [TextOutput(fname, Output.Everything) for fname in dolagFileNames]
+    outputs = [TextOutput(fname, Output.Everything) for fname in filesDict['extra-galactic']]
+    outputs2 = [TextOutput(fname, Output.Event3D) for fname in filesDict['garbage']]
     
-    garbageFileNames = [fname_func(outPath=garbageDir,ith=i+1,name='garbage_Dolag_part',ext='txt') for i in range(parts)]
-    outputs2 = [TextOutput(fname, Output.Event3D) for fname in garbageFileNames]
-
-    for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, dolagFileNames)):
+    parts = len(outputs)
+    for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, filesDict['extra-galactic'])):
         print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
         
         EG_obs.onDetection( output )
+        EG_obs.setDeactivateOnDetection(True)
         sim.add(EG_obs)
         
         test_obs.onDetection( output2 )
+        test_obs.setDeactivateOnDetection(True)
         sim.add(test_obs)
         
-        sim.run(source_list, partNum)
+        sim.run(sources, partNum)
         
         print('Results successfully saved at {}'.format(dolagFileName))
         output.close()
         sim.remove(sim.size()-1)
         sim.remove(sim.size()-1)
 
-    ##############################################################################################################
-    #                                       GALACTIC PROPAGATION (JF12 MODEL)
-    ##############################################################################################################
-    
-    outDirG = outDir.joinpath('Galactic-part')
-    check_dir(outDirG)
-    
+
+def run_galactic_part(filesDict, rObs, **kwargsSim):
+
     # Simulation setup
     sim = ModuleList()
 
     # Propagator, interactions and break condition
-    prop_3D.set_simulation(sim=sim,
-                           interactions=(not noInteractions),
-                           field=JF12_field,
-                           tolerance=5e-4,
-                           minStep=0.1*kpc,
-                           maxStep=1.*kpc)
+    #cpf.maxTrajectoryL = 200. * kpc
+    prop_3D.set_simulation(sim=sim, **kwargsSim)
 
     # Observer 1 (Earth)
-    rObs = 1*kpc 
     G_obs = Observer()
     G_obs.add(ObserverSurface( Sphere(Vector3d(-8.5*kpc, 0, 0), rObs) ))
 
@@ -168,27 +185,27 @@ def run(
     test_obs = Observer()
     test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rGalaxy*kpc) ))
 
-    JF12FileNames = [fname_func(outPath=outDirG,ith=i+1,name='JF12_part',ext='txt') for i in range(parts)]
-    outputs = [TextOutput(fname, Output.Event3D) for fname in JF12FileNames]
-
-    garbageFileNames = [fname_func(outPath=garbageDir,ith=i+1,name='garbage_JF12_part',ext='txt') for i in range(parts)]
-    outputs2 = [TextOutput(fname, Output.Event3D) for fname in garbageFileNames]
+    outputs = [TextOutput(fname, Output.Event3D) for fname in filesDict['galactic']]
+    outputs2 = [TextOutput(fname, Output.Event3D) for fname in filesDict['garbage']]
 
     print('\n\n\t\tSECOND STAGE: GALACTIC PROPAGATION\n ')
 
     input = ParticleCollector()
-    sim.setShowProgress(barProgress)
-    for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, dolagFileNames)):
+    
+    parts = len(outputs)
+    for i, (output, output2, EGFiles) in enumerate(zip(outputs, outputs2, filesDict['extra-galactic'])):
         print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
-        input.load(dolagFileName)
+        input.load(EGFiles)
         
         inputsize = len(input)
         print('Number of candidates: {}\n'.format(inputsize))
         
         G_obs.onDetection( output )
+        G_obs.setDeactivateOnDetection(True)
         sim.add(G_obs)
 
         test_obs.onDetection( output2 )
+        test_obs.setDeactivateOnDetection(True)
         sim.add(test_obs)
         
         sim.run(input.getContainer())
@@ -235,6 +252,9 @@ def args_parser_function():
                         help='Rigidity breakpoint for the broken exponential cut-off function  [10^r V] (default: %(default)s)')
     parser.add_argument('--rigLim', action='store_true', 
                         help='Whether to use rigidity limits for source energy emissions (default: %(default)s)')
+    parser.add_argument('--prop', default='both',
+                        choices=['both', 'extra-galactic', 'galactic'],
+                        help='Which stages to consider in the simulation (default: %(default)s)')
     
     args = parser.parse_args()
     print_args(args)
@@ -243,17 +263,25 @@ def args_parser_function():
 
 def main(args):
     # Setting the magnetic fields
-    print('Setting up Dolag Extragalactic Magnetic Field...')
-    Dolag_field = setting_dolag_field(pathToDolag=args.dolagPath, bFactor=args.bFactor)
-    print('Done!\nSetting up JF12 Galactic Magnetic Field...')
-    JF12_field = setting_jf12_field()
-    print('Done!')
+    if args.prop != 'galactic': 
+        print('Setting up Dolag Extragalactic Magnetic Field...')
+        Dolag_field = setting_dolag_field(pathToDolag=args.dolagPath, bFactor=args.bFactor)
+        print('Done!\n')
+    else:
+        Dolag_field = None
     
+    if args.prop != 'extra-galactic': 
+        print('Setting up JF12 Galactic Magnetic Field...')
+        JF12_field = setting_jf12_field()
+        print('Done!\n')
+    else:
+        JF12_field = None
+        
     delattr(args, 'dolagPath')
     delattr(args, 'bFactor')
     run(JF12_field=JF12_field, Dolag_field=Dolag_field, **vars(args))
     
-    del_by_extension(parentDir=Path(''), exts=('.pyc',), recursive=True)
+    flu.del_by_extension(parentDir=Path(''), exts=('.pyc',), recursive=True)
     
 if __name__ == '__main__':
     args = args_parser_function()

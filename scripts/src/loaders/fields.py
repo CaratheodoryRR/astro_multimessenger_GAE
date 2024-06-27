@@ -1,13 +1,19 @@
 from crpropa import *
+from pydataclasses import DataClass
 
-def setting_dolag_field(pathToDolag, bFactor):
+class dolag_grid(DataClass):
     # magnetic field setup
     gridSize = 440
     size = 186*Mpc
     spacing = size/(gridSize)
-    boxOrigin = Vector3d(-0.5*size, -0.5*size, -0.5*size) 
+    boxOrigin = Vector3d(-0.5*size)
 
-    vgrid = Grid3f(boxOrigin, gridSize, spacing)
+
+def setting_dolag_field(pathToDolag, bFactor):
+    
+    dolagConfig = dolag_grid()
+    
+    vgrid = Grid3f(dolagConfig.boxOrigin, dolagConfig.gridSize, dolagConfig.spacing)
     loadGrid(vgrid, str(pathToDolag), bFactor)
     
     dolag_field = MagneticFieldGrid(vgrid)

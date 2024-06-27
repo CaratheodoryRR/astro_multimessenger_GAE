@@ -26,6 +26,7 @@ A_Z = {
 # Default values
 # --------------
 stopE = 1. # In EeV, used in MinimumEnergy()
+maxTrajectoryL = 1000 * Mpc # Maximum trajectory before stopping, used in MaximumTrajectoryLength()
 
 # Minimum and maximum energies (in EeV) for the source energy distribution (see variable energy at ...)
 minE = 1.
