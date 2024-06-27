@@ -183,7 +183,7 @@ def run_galactic_part(filesDict, rObs, **kwargsSim):
 
     # Observer 2 (barely greater than the galaxy, for speeding things up)
     test_obs = Observer()
-    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rGalaxy*kpc) ))
+    test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rGalaxy) ))
 
     outputs = [TextOutput(fname, Output.Event3D) for fname in filesDict['galactic']]
     outputs2 = [TextOutput(fname, Output.Event3D) for fname in filesDict['garbage']]
