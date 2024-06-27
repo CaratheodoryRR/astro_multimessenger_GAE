@@ -23,7 +23,7 @@ class SourceDirectionTowardsPoint(SourceFeature):
         SourceFeature.prepareCandidate(self, candidate)
 
 def set_simulation(sim, model=IRB_Gilmore12(), interactions=True, barProgress=True, **kwargs):
-    sim.add( PropagationBP(**kwargs) )
+    sim.add( PropagationBP(kwargs['field'], kwargs['tolerance'], kwargs['minStep'], kwargs['maxStep']) )
     sim.add( Redshift() )
     
     if interactions: set_interactions(sim, model)
