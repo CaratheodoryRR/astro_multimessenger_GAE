@@ -58,6 +58,8 @@ def chi2_error(simN, paoN):
     simTotal = simN.sum()
     paoTotal = paoN.sum()
     
+    if simTotal == 0: return np.inf
+    
     num = (paoN/paoTotal - simN/simTotal)**2
     den = paoN/paoTotal**2 + simN/simTotal**2
     
