@@ -22,6 +22,34 @@ class SourceDirectionTowardsPoint(SourceFeature):
         candidate.source.setDirection(direction.getUnitVector())
         SourceFeature.prepareCandidate(self, candidate)
 
+
+class SourceDirectedvMFTowardsPoint(SourceFeature):
+    
+    random = Random.instance()
+    
+    def __init__(self, point, kappa):
+        SourceFeature.__init__(self)
+        self.point = point
+        self.kappa = kappa
+
+    def __str__(self):
+        return 'Direction towards {} using vMF distribution (kappa = {:.2e})'.format(self.point, self.kappa)    
+    
+    def prepareCandidate(self, candidate):
+        mu = self.point - candidate.source.getPosition()  # Vector.Head - Vector.Tail
+        mu = mu.getUnitVector()
+        
+        direction = random.randFisherVector(mu, self.kappa)
+        direction = direction.getUnitVector()
+        candidate.source.setDirection(direction)
+        
+        pdfVonMises = self.kappa / (2. * M_PI * (1. - np.exp(-2. * self.kappa))) * np.exp(-self.kappa * (1. - direction.dot(mu)))
+        weight = 1. / (4. * M_PI * pdfVonMises)
+        candidate.setWeight(weight)
+        
+        SourceFeature.prepareCandidate(self, candidate)
+        
+
 def set_simulation(sim, model=IRB_Gilmore12(), interactions=True, barProgress=True, **kwargs):
     sim.add( PropagationBP(kwargs['field'], kwargs['tolerance'], kwargs['minStep'], kwargs['maxStep']) )
     sim.add( Redshift() )
@@ -50,8 +78,7 @@ def set_sources_handler(srcType, **kwargs):
 def grid_like_sources(srcPath, spectrumStr, nucleiFracs, rigidityLimits=False):
     
     sourceTemplate = source_template(spectrumStr=spectrumStr, nucleiFracs=nucleiFracs)
-    fixedPoint = Vector3d()
-    customSourceFeature = SourceDirectionTowardsPoint(fixedPoint)
+
     # Source Density Grid
     dolagConfig = dolag_grid()
     mgrid = Grid1f( dolagConfig.boxOrigin, dolagConfig.gridSize, dolagConfig.spacing )
@@ -60,7 +87,6 @@ def grid_like_sources(srcPath, spectrumStr, nucleiFracs, rigidityLimits=False):
     source_module = Source()
     source_module.add( sourceTemplate )
     source_module.add( SourceDensityGrid( mgrid ) )
-    source_module.add( customSourceFeature )
 
     return source_module 
 
