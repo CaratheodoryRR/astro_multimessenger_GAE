@@ -51,8 +51,11 @@ def events_from_files(fileNames, bins = pao.ebins):
     lnAContainer = []
     counts = np.zeros(len(bins)-1)
     for fName in fileNames:
-        data = np.genfromtxt(fName, names=True, usecols=('E', 'ID'))
-        cnt, engs, massn = event_counter(data, bins)
+        try:
+            data = np.genfromtxt(fName, names=True, usecols=('E', 'ID'))
+        except:
+            continue
+        cnt, engs, massn = event_counter(np.atleast_1d(data), bins)
         counts += cnt
         
         lnAContainer.append(lnA_stats(massn, engs, bins))
