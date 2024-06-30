@@ -91,6 +91,7 @@ def run(
                                 kwargsProp=kwargsProp,
                                 srcType=srcType,
                                 partNum=partNum,
+                                tau=tau,
                                 field=Dolag_field,
                                 interactions=(not noInteractions),
                                 barProgress=barProgress,
@@ -119,7 +120,7 @@ def run(
                           maxStep=1.*kpc)
 
 
-def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, **kwargsSim):
+def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, tau, **kwargsSim):
 
     # simulation setup
     sim = ModuleList()
@@ -127,8 +128,11 @@ def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, **kwargsSim
     # Sources
     sources = prop_3D.set_sources_handler(srcType, **kwargsProp)
     if srcType == 'grid':
-        fixedPoint = Vector3d()
-        customSourceFeature = prop_3D.SourceDirectionTowardsPoint(fixedPoint)
+        fixedPoint = Vector3d(0)
+        if tau is None:
+            customSourceFeature = prop_3D.SourceDirectionTowardsPoint(fixedPoint)
+        else: 
+            customSourceFeature = prop_3D.SourceDirectedvMFTowardsPoint(fixedPoint, tau)
         sources.add( customSourceFeature )
     # Propagator, interactions and break condition
     cpf.maxTrajectoryL = 200. * Mpc
