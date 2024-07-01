@@ -6,8 +6,9 @@ from .prop_general import set_interactions
 from ..utils.coords import coordinate_transformation_handler
 from ..loaders.fields import dolag_grid
 
-farthestSourceDistance = {'grid':np.sqrt(3)*dolag_grid().size/2,
-                          'point-like':100.*Mpc}
+farthestSourceDistance = {'grid': np.sqrt(3)*dolag_grid().size/2,
+                          'point-like': 100.*Mpc,
+                          'random': 100.*Mpc}
 
 class SourceDirectionTowardsPoint(SourceFeature):
     def __init__(self, point):
@@ -74,6 +75,18 @@ def set_sources_handler(srcType, **kwargs):
         return point_like_sources(**kwargs)
     elif srcType == 'grid':
         return grid_like_sources(**kwargs)
+    elif srcType == 'random':
+        return random_sources(**kwargs)
+
+def random_sources(spectrumStr, nucleiFracs, rigidityLimits=False):
+    
+    sourceTemplate = source_template(spectrumStr=spectrumStr, nucleiFracs=nucleiFracs)
+        
+    source_module = Source()
+    source_module.add( sourceTemplate )
+    source_module.add( SourceUniformHollowSphere(Vector3d(0), 10.*Mpc, 100.*Mpc) )
+
+    return source_module 
 
 def grid_like_sources(srcPath, spectrumStr, nucleiFracs, rigidityLimits=False):
     
@@ -88,7 +101,7 @@ def grid_like_sources(srcPath, spectrumStr, nucleiFracs, rigidityLimits=False):
     source_module.add( sourceTemplate )
     source_module.add( SourceDensityGrid( mgrid ) )
 
-    return source_module 
+    return source_module
 
 def point_like_sources(srcPath, spectrumStr, nucleiFracs, Coords, tau=None, rigidityLimits=False):
     sourcesData = np.genfromtxt(srcPath, names=True)

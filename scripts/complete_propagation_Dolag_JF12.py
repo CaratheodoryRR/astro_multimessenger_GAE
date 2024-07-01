@@ -39,7 +39,13 @@ def run(
     if prop != 'galactic': flu.del_by_extension(outDir, exts=('.gz', '.txt', '.dat'), recursive=True)
     fnameOutput = 'events'
 
-    srcType = 'grid' if str(srcPath).endswith('.raw') else 'point-like'
+    rnd = (str(srcPath) == 'random')
+    if rnd:
+        srcType = 'random'
+    elif str(srcPath).endswith('.raw'):
+        srcType = 'grid'
+    else:
+        srcType = 'point-like'
 
     if stopEnergy is None:
         stopEnergy = minEnergy
@@ -58,7 +64,7 @@ def run(
     rcut = 10.**rcut * eV
 
     kwargsProp = {}
-    kwargsProp['srcPath'] = srcPath
+    if not rnd: kwargsProp['srcPath'] = srcPath
     kwargsProp['spectrumStr'] = source_energy_spectrum(alpha, rcut)
     kwargsProp['nucleiFracs'] = yamlFile if isinstance(yamlFile, dict) else get_dict_from_yaml(yamlFile)
     kwargsProp['rigidityLimits'] = rigLim
@@ -127,7 +133,7 @@ def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, tau, **kwar
 
     # Sources
     sources = prop_3D.set_sources_handler(srcType, **kwargsProp)
-    if srcType == 'grid':
+    if srcType != 'point-like':
         fixedPoint = Vector3d(0)
         if tau is None:
             customSourceFeature = prop_3D.SourceDirectionTowardsPoint(fixedPoint)
