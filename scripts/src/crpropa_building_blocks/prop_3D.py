@@ -10,6 +10,8 @@ farthestSourceDistance = {'grid': np.sqrt(3)*dolag_grid().size/2,
                           'point-like': 100.*Mpc,
                           'random': 100.*Mpc}
 
+randomCRPropa = Random.instance()
+
 class SourceDirectionTowardsPoint(SourceFeature):
     def __init__(self, point):
         SourceFeature.__init__(self)
@@ -26,8 +28,6 @@ class SourceDirectionTowardsPoint(SourceFeature):
 
 class SourceDirectedvMFTowardsPoint(SourceFeature):
     
-    random = Random.instance()
-    
     def __init__(self, point, kappa):
         SourceFeature.__init__(self)
         self.point = point
@@ -40,7 +40,7 @@ class SourceDirectedvMFTowardsPoint(SourceFeature):
         mu = self.point - candidate.source.getPosition()  # Vector.Head - Vector.Tail
         mu = mu.getUnitVector()
         
-        direction = random.randFisherVector(mu, self.kappa)
+        direction = randomCRPropa.randFisherVector(mu, self.kappa)
         direction = direction.getUnitVector()
         candidate.source.setDirection(direction)
         

@@ -23,14 +23,14 @@ numThousands = 10**4
 noInteractions = False
 minEnergy = 19.0
 idx = np.abs(pao.ebins - minEnergy).argmin()
-parts = 10
+parts = numThousands/10**3
 check_dir(outDir)
 kw3d = {}
 if simType=='3D':
     kw3d['JF12_field'] = setting_jf12_field()
     kw3d['Dolag_field'] = setting_dolag_field(pathToDolag=Path(root).joinpath('data/dolag_B_54-186Mpc_440b.raw'),
-                                              bFactor=1e-5)
-    kw3d['tau'] = 1e9
+                                              bFactor=5e-5)
+    kw3d['tau'] = 1e7
 
     
 obj_func = lambda r: objf.chi2_obj_func(sample=r,
@@ -44,18 +44,18 @@ obj_func = lambda r: objf.chi2_obj_func(sample=r,
                                         barProgress=False,
                                         parts=parts,
                                         minEnergy=minEnergy,
-                                        rigLim=True,
+                                        rigLim=False,
                                         **kw3d)
 
 ##############################################################################################################
 #                                   CUCKOO SEARCH VARIABLES
 ##############################################################################################################
-nHosts = 5
-pa = 0.4
+nHosts = 10
+pa = 0.5
 ranges = np.repeat(a=[[0,1]],
                    repeats=numOfParams,
                    axis=0)
-maxIter = 20
+maxIter = 50
 checkpointDir = outDir.joinpath('checkpoints')
 check_dir(checkpointDir)
 bfResult = cuckoo_search(f=obj_func,

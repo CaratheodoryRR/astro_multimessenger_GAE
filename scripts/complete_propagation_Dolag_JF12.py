@@ -101,9 +101,9 @@ def run(
                                 field=Dolag_field,
                                 interactions=(not noInteractions),
                                 barProgress=barProgress,
-                                tolerance=5e-4,
-                                minStep=0.1*Mpc,
-                                maxStep=1.*Mpc)
+                                tolerance=1e-5,
+                                minStep=10.*kpc,
+                                maxStep=100.*kpc)
     
     ##############################################################################################################
     #                                       GALACTIC PROPAGATION (JF12 MODEL)
@@ -121,9 +121,9 @@ def run(
                           field=JF12_field,
                           interactions=(not noInteractions),
                           barProgress=barProgress,
-                          tolerance=5e-4,
-                          minStep=0.1*kpc,
-                          maxStep=1.*kpc)
+                          tolerance=1e-5,
+                          minStep=10.*pc,
+                          maxStep=100*pc)
 
 
 def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, tau, **kwargsSim):
@@ -201,7 +201,6 @@ def run_galactic_part(filesDict, rObs, **kwargsSim):
     print('\n\n\t\tSECOND STAGE: GALACTIC PROPAGATION\n ')
 
     input = ParticleCollector()
-    
     parts = len(outputs)
     for i, (output, output2, EGFiles) in enumerate(zip(outputs, outputs2, filesDict['extra-galactic'])):
         print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
@@ -226,6 +225,8 @@ def run_galactic_part(filesDict, rObs, **kwargsSim):
         sim.remove(sim.size()-1)
         sim.remove(sim.size()-1)
         input.clearContainer()
+    
+    input.shrinkToFit()
 
 def args_parser_function():
     parser = argparse.ArgumentParser(

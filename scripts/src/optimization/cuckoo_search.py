@@ -77,7 +77,8 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
         print('Generating initial population...')
         pts = np.column_stack((r, f(r)))
     
-    top3Old = pts[:3].copy()
+    N = nHosts - drop
+    topNOld = pts[:N].copy()
     for i in range(maxIter):
         print('\n\n\nGENERATION {} OF {}'.format(i+1, maxIter))
         rNew = levy_advance(r0=pts[:,:-1], scale=1, **kwargs)
@@ -90,8 +91,8 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
         pts = np.where(np.expand_dims(ptsNew[:,-1], 1) < np.expand_dims(pts[:,-1], 1), ptsNew, pts)
         pts = pts[pts[:,-1].argsort()]          
         
-        if (checkpointDir is not None) and ((pts[:3]!=top3Old).any() or i==maxIter-1):
-            top3Old = pts[:3].copy()
+        if (checkpointDir is not None) and ((pts[:N]!=topNOld).any() or i==maxIter-1):
+            topNOld = pts[:N].copy()
             save_checkpoint(checkpointArr=pts,
                             outDir=checkpointDir, 
                             gen=i+1)
@@ -104,13 +105,12 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
         
         best = pts[pts[:,-1].argmin()]
         print('\n\nCURRENT BEST: chi2: {0} \nFracs: {1}\nRcut: {2}\nalpha: {3}\n'.format(best[-1],
-                                                                                         best[:-3],
+                                                                                         best[:-3]/best[:-3].sum(),
                                                                                          rescale_from_normal(interval=rcutRange, 
                                                                                                              value=best[-3]),
                                                                                          rescale_from_normal(interval=alphaRange, 
                                                                                                              value=best[-2])))
-    
+
     pts = pts[pts[:,-1].argsort()]
     save_checkpoint(checkpointArr=pts, outDir=checkpointDir, gen='last')
     return from_raw_to_real(arr=pts[:-drop])
-        

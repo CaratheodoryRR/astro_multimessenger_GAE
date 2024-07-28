@@ -1,4 +1,3 @@
-
 import os
 import sys
 import yaml
@@ -53,18 +52,19 @@ def events_from_files(fileNames, bins = pao.ebins):
     for fName in fileNames:
         try:
             data = np.genfromtxt(fName, names=True, usecols=('E', 'ID'))
-        except:
+        except IndexError:
+            print('{} is an empty file!'.format(Path(fName).resolve()))
             continue
         cnt, engs, massn = event_counter(np.atleast_1d(data), bins)
         counts += cnt
-        
+
         lnAContainer.append(lnA_stats(massn, engs, bins))
-    
+
     lnA = np.array(lnAContainer)
-    
+
     lnAStats = np.nanmean(lnA, axis=0)
     lnAErrors = np.sqrt(np.nanvar(lnA, axis=0))
-    
+
     return counts, lnAStats, lnAErrors
 
 def print_args(args):
