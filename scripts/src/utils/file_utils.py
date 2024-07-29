@@ -1,4 +1,3 @@
-
 from pathlib import Path
 
 def not_empty_file(filename):

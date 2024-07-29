@@ -5,7 +5,7 @@ from tqdm import tqdm
 from pathlib import Path
 
 from ..UHECRs_sim_f import A_Z
-from  .. import auger_data_he as pao
+from .. import auger_data_he as pao
 from ..utils.error_functions import err_parameter_handler
 from ..utils.general import (events_from_files, 
                              rescale_from_normal,

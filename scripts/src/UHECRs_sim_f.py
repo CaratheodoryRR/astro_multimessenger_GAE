@@ -1,15 +1,14 @@
 from crpropa import *
 from pathlib import Path
 
-import auger_data_he as pao
-import matplotlib.pyplot as plt
-import sim_functions_he as sf
-import utils.file_utils as flu
-import numpy as np
 import time
+import numpy as np
+import matplotlib.pyplot as plt
 
+from . import auger_data_he as pao
+from . import sim_functions_he as sf
+from .utils import file_utils as flu
 from .utils.error_functions import *
-
 
 # Global variables
 # =================================================================================

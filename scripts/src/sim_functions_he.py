@@ -3,12 +3,13 @@ Created by Jaime Hoefken and Jose Gabriel Olivares.
 See their github repository here: 
     https://github.com/jhoefken/crpropa_sim_functions
 """
-import matplotlib.pyplot as plt
+import os
 import numpy as np
 import pylab as pl
+import matplotlib.pyplot as plt
+
 from crpropa import *
-from auger_data_he import *
-import os
+from .auger_data_he import *
 
 #Functions to compute quantities
 def f_cut(e, zr):

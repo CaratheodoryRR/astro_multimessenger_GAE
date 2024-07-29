@@ -1,5 +1,6 @@
-from crpropa import *
 import numpy as np
+
+from crpropa import *
 
 def source_energy_spectrum(alpha, rcut=np.inf):
     

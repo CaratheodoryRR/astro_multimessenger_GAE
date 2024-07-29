@@ -7,9 +7,9 @@ from pathlib import Path
 from src import UHECRs_sim_f as cpf
 from src.crpropa_building_blocks import prop_3D
 from src.utils import file_utils as flu
-from src.utils.general import get_dict_from_yaml, print_args
+from src.utils.general import (get_dict_from_yaml, print_args)
 from src.utils.coords import coordinate_transformation_handler
-from src.loaders.fields import setting_dolag_field, setting_jf12_field
+from src.loaders.fields import (setting_dolag_field, setting_jf12_field)
 from src.crpropa_building_blocks.prop_general import source_energy_spectrum
 
 # We model the galaxy as a sphere of radius 20 kpc
@@ -25,7 +25,7 @@ def run(
     maxEnergy = 21.0, # Maximum source energy (10^maxEnergy eV)
     minEnergy = 18.0, # Minimum source energy (10^minEnergy eV)
     stopEnergy = None, # Simulation's stopping energy (10^stopEnergy eV)
-    tau = None, # Concentration parameter for the vMF distribution (default: directed emission)
+    kappa = None, # Concentration parameter for the vMF distribution (default: directed emission)
     rcut = 20.5, # Rigidity breakpoint for the broken exponential cut-off function (10^rcut V)
     alpha = 2.3, # Power-Law exponent (dN/dE ~ E^-alpha)
     num = 100, # Number of emitted CRs (in thousands)
@@ -70,7 +70,7 @@ def run(
     kwargsProp['rigidityLimits'] = rigLim
     if srcType == 'point-like':
         kwargsProp['Coords'] = Coords
-        kwargsProp['tau'] = tau
+        kwargsProp['kappa'] = kappa
     
     filesDict = {}
     ##############################################################################################################
@@ -97,7 +97,7 @@ def run(
                                 kwargsProp=kwargsProp,
                                 srcType=srcType,
                                 partNum=partNum,
-                                tau=tau,
+                                kappa=kappa,
                                 field=Dolag_field,
                                 interactions=(not noInteractions),
                                 barProgress=barProgress,
@@ -126,7 +126,7 @@ def run(
                           maxStep=100*pc)
 
 
-def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, tau, **kwargsSim):
+def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, kappa, **kwargsSim):
 
     # simulation setup
     sim = ModuleList()
@@ -135,10 +135,10 @@ def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, tau, **kwar
     sources = prop_3D.set_sources_handler(srcType, **kwargsProp)
     if srcType != 'point-like':
         fixedPoint = Vector3d(0)
-        if tau is None:
+        if kappa is None:
             customSourceFeature = prop_3D.SourceDirectionTowardsPoint(fixedPoint)
         else: 
-            customSourceFeature = prop_3D.SourceDirectedvMFTowardsPoint(fixedPoint, tau)
+            customSourceFeature = prop_3D.SourceDirectedvMFTowardsPoint(fixedPoint, kappa)
         sources.add( customSourceFeature )
     # Propagator, interactions and break condition
     cpf.maxTrajectoryL = 200. * Mpc
@@ -226,7 +226,6 @@ def run_galactic_part(filesDict, rObs, **kwargsSim):
         sim.remove(sim.size()-1)
         input.clearContainer()
     
-    input.shrinkToFit()
 
 def args_parser_function():
     parser = argparse.ArgumentParser(
@@ -248,7 +247,7 @@ def args_parser_function():
                         help='Total number of emitted cosmic rays, in thousands (default: %(default)s)')
     parser.add_argument('-b', '--bFactor', default=1e-4, type=float,
                         help='Scale factor for the EGMF (default: %(default)s)')
-    parser.add_argument('-t', '--tau', type=float,
+    parser.add_argument('-k', '--kappa', type=float,
                         help='Concentration parameter for the vMF distribution (default: %(default)s)')
     parser.add_argument('-p', '--parts', type=int, default=1,
                         help='Divide the simulation into n parts (default: %(default)s)')
@@ -266,11 +265,14 @@ def args_parser_function():
     parser.add_argument('--prop', default='both',
                         choices=['both', 'extra-galactic', 'galactic'],
                         help='Which stages to consider in the simulation (default: %(default)s)')
-    
+    parser.add_argument('--noInteractions', action='store_true', 
+                        help='Deactivate all CRs interactions (default: %(default)s)')
+
     args = parser.parse_args()
     print_args(args)
-    
+
     return args
+
 
 def main(args):
     # Setting the magnetic fields
@@ -293,7 +295,8 @@ def main(args):
     run(JF12_field=JF12_field, Dolag_field=Dolag_field, **vars(args))
     
     flu.del_by_extension(parentDir=Path(''), exts=('.pyc',), recursive=True)
-    
+
+
 if __name__ == '__main__':
     args = args_parser_function()
     main(args)

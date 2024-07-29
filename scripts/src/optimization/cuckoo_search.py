@@ -4,7 +4,7 @@ from pathlib import Path
 from scipy.stats import (levy_stable, uniform, norm)
 
 from ..utils.general import rescale_from_normal
-from .objective_functions import rcutRange, alphaRange
+from .objective_functions import (rcutRange, alphaRange)
 
 def save_checkpoint(checkpointArr, outDir, gen):
     numOfParams = checkpointArr.shape[1]-1

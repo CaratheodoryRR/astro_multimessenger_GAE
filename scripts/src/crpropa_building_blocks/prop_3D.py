@@ -2,9 +2,9 @@ import numpy as np
 
 from crpropa import *
 from .. import UHECRs_sim_f as cpf
+from ..loaders.fields import dolag_grid
 from .prop_general import set_interactions
 from ..utils.coords import coordinate_transformation_handler
-from ..loaders.fields import dolag_grid
 
 farthestSourceDistance = {'grid': np.sqrt(3)*dolag_grid().size/2,
                           'point-like': 100.*Mpc,
@@ -103,17 +103,17 @@ def grid_like_sources(srcPath, spectrumStr, nucleiFracs, rigidityLimits=False):
 
     return source_module
 
-def point_like_sources(srcPath, spectrumStr, nucleiFracs, Coords, tau=None, rigidityLimits=False):
+def point_like_sources(srcPath, spectrumStr, nucleiFracs, Coords, kappa=None, rigidityLimits=False):
     sourcesData = np.genfromtxt(srcPath, names=True)
     farthestSourceDistance['point-like'] = 1.01 * sourcesData['Distance'].max() * Mpc
     redshiftPresent = 'Redshift' in sourcesData.dtype.names    
     redshifts = sourcesData['Redshift'] if redshiftPresent else None
     sourcesPos = coordinate_transformation_handler(sourcesData, Coords)
     
-    if tau is None:
+    if kappa is None:
         source_emission = lambda direction: SourceDirection( direction )
     else:
-        source_emission = lambda direction: SourceDirectedEmission( direction, tau )
+        source_emission = lambda direction: SourceDirectedEmission( direction, kappa )
 
     if Coords == 'spherical':
         set_vector_position = lambda v, s: v.setRThetaPhi(s['R'], s['Theta'], s['Phi'])

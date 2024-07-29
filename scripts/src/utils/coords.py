@@ -1,7 +1,8 @@
 
 import numpy as np
-from astropy.coordinates import SkyCoord
 import astropy.units as u
+
+from astropy.coordinates import SkyCoord
 
 def coordinate_transformation_handler(sourcePositions, coords):
     if coords == 'galactic':

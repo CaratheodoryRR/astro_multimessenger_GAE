@@ -1,10 +1,10 @@
 from crpropa import *
-from .prop_general import set_interactions
 from .. import UHECRs_sim_f as cpf
+from .prop_general import set_interactions
 
 def set_simulation(sim, model=IRB_Gilmore12(), interactions=True, **kwargs):
     
-    sim.add( SimplePropagation(**kwargs) )
+    sim.add( SimplePropagation(kwargs['minStep'], kwargs['maxStep']) )
     sim.add( Redshift() )
     
     if interactions: set_interactions(sim, model)

@@ -4,11 +4,12 @@ import src.optimization.objective_functions as objf
 
 from pathlib import Path
 from src.UHECRs_sim_f import A_Z
+from src.optimization.cuckoo_search import cuckoo_search
+from src.utils.file_utils import (check_dir, del_by_extension)
+from src.loaders.fields import (setting_dolag_field, setting_jf12_field)
+
 from one_dimensional_propagation import run as run1D
 from complete_propagation_Dolag_JF12 import run as run3D
-from src.optimization.cuckoo_search import cuckoo_search
-from src.utils.file_utils import check_dir, del_by_extension
-from src.loaders.fields import setting_dolag_field, setting_jf12_field
 
 numOfParams = len(A_Z)+2
 simType = '3D'
@@ -19,18 +20,18 @@ simType = '3D'
 root = '/home/caratheodory/development/astro_multimessenger_GAE/'
 sourcesFile = Path(root).joinpath('data/EG_{}_sources.txt'.format(simType))
 outDir = Path('./test_{}/'.format(simType))
-numThousands = 10**4
+numThousands = 10**3
 noInteractions = False
 minEnergy = 19.0
 idx = np.abs(pao.ebins - minEnergy).argmin()
-parts = numThousands/10**3
+parts = numThousands//10**3
 check_dir(outDir)
 kw3d = {}
 if simType=='3D':
     kw3d['JF12_field'] = setting_jf12_field()
     kw3d['Dolag_field'] = setting_dolag_field(pathToDolag=Path(root).joinpath('data/dolag_B_54-186Mpc_440b.raw'),
                                               bFactor=5e-5)
-    kw3d['tau'] = 1e7
+    kw3d['kappa'] = 1e7
 
     
 obj_func = lambda r: objf.chi2_obj_func(sample=r,
@@ -41,7 +42,7 @@ obj_func = lambda r: objf.chi2_obj_func(sample=r,
                                         outDir=outDir,
                                         num=numThousands,
                                         noInteractions=noInteractions,
-                                        barProgress=False,
+                                        barProgress=True,
                                         parts=parts,
                                         minEnergy=minEnergy,
                                         rigLim=False,

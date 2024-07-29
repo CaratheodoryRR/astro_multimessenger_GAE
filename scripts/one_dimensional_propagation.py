@@ -6,8 +6,8 @@ from pathlib import Path
 
 from src import UHECRs_sim_f as cpf
 from src.crpropa_building_blocks import prop_1D
-from src.utils.general import get_dict_from_yaml, print_args
 from src.utils.file_utils import check_dir, del_by_extension
+from src.utils.general import (get_dict_from_yaml, print_args)
 from src.crpropa_building_blocks.prop_general import source_energy_spectrum
 
 
@@ -70,8 +70,8 @@ def run(
     # Propagator, interactions and break condition
     prop_1D.set_simulation(sim=sim,
                            interactions=(not noInteractions),
-                           minStep=1.*kpc,
-                           maxStep=1.*Mpc)
+                           minStep=10.*kpc,
+                           maxStep=100.*kpc)
 
     # Observer
     obs = Observer()

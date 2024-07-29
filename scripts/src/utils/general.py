@@ -7,7 +7,6 @@ from pathlib import Path
 from crpropa import massNumber
 from .. import auger_data_he as pao
 
-
 class hidden_prints:
     def __enter__(self):
         self._original_stdout = sys.stdout
