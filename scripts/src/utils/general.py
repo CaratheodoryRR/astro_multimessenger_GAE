@@ -39,7 +39,7 @@ def lnA_stats(A, E, bins):
 def event_counter(data, bins):
     
     energies = 18. + np.log10(data['E'])
-    A = np.array([massNumber(id) for id in data['ID'].astype(int)])
+    A = np.array([massNumber(int(id)) for id in data['ID']])
     counts = np.histogram(energies[A >= 1], bins = bins)[0]
     
     return counts, energies, A

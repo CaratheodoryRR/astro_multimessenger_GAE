@@ -438,8 +438,8 @@ def plot_power(title = "new_simulation",plotfile = "new_simulation_plot",plottit
 	d = pl.genfromtxt(filename, names=True)
 
 	# observed quantities
-	Z = pl.array([chargeNumber(id) for id in d['ID'].astype(int)])  # element
-	A = pl.array([massNumber(id) for id in d['ID'].astype(int)])  # atomic mass number
+	Z = pl.array([chargeNumber(int(id)) for id in d['ID']])  # element
+	A = pl.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
 	lE = pl.log10(d['E']) + 18  # energy in log10(E/eV))
 
 	lEbins = ebins  # logarithmic bins
@@ -508,8 +508,8 @@ def plot_parts(title = "new_simulation",plotfile = "new_simulation",plottitle = 
 			
 			if (d.ndim == 2):
 				# observed quantities
-				Z = pl.array([chargeNumber(id) for id in d['ID'].astype(int)])  # element
-				A = pl.array([massNumber(id) for id in d['ID'].astype(int)])  # atomic mass number
+				Z = pl.array([chargeNumber(int(id)) for id in d['ID']])  # element
+				A = pl.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
 				
 				lE = pl.log10(d['E']) + 18  # energy in log10(E/eV))
 				
@@ -614,8 +614,8 @@ def plot_power_parts(title = "new_simulation",plotfile = "new_simulation",plotti
 			
 			if (d.ndim == 2):
 				# observed quantities
-				Z = pl.array([chargeNumber(id) for id in d['ID'].astype(int)])  # element
-				A = pl.array([massNumber(id) for id in d['ID'].astype(int)])  # atomic mass number
+				Z = pl.array([chargeNumber(int(id)) for id in d['ID']])  # element
+				A = pl.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
 				
 				lE = pl.log10(d['E']) + 18  # energy in log10(E/eV))
 				
@@ -695,8 +695,8 @@ def plot_power_sources(title = "new_simulation",plotfile = "new_simulation",plot
 			db = pl.genfromtxt(filename[i_parts])
 			if (db.ndim == 2):
 				# observed quantities
-				Z = pl.array([chargeNumber(id) for id in d['ID0'].astype(int)])  # element
-				A = pl.array([massNumber(id) for id in d['ID0'].astype(int)])  # atomic mass number
+				Z = pl.array([chargeNumber(int(id)) for id in d['ID0']])  # element
+				A = pl.array([massNumber(int(id)) for id in d['ID0']])  # atomic mass number
 				
 				lE = pl.log10(d['E0']) + 18  # energy in log10(E/eV))
 				
@@ -764,9 +764,9 @@ def plot_errors_rcut(title = "new_simulation",plotfile = "new_simulation",plotti
 	d = pl.genfromtxt(filename, names=True)
 
 	# observed quantities
-	Z = pl.array([chargeNumber(id) for id in d['ID'].astype(int)])  # element
-	Z0 = pl.array([chargeNumber(id) for id in d['ID0'].astype(int)])  # element at source
-	A = pl.array([massNumber(id) for id in d['ID'].astype(int)])  # atomic mass number
+	Z = pl.array([chargeNumber(int(id)) for id in d['ID']])  # element
+	Z0 = pl.array([chargeNumber(int(id)) for id in d['ID0']])  # element at source
+	A = pl.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
 	lE = pl.log10(d['E']) + 18  # energy in log10(E/eV))
 	num = len(Z0)
 	energy0 = d['E0']
@@ -847,9 +847,9 @@ def plot_errors_rcut_separate(fractions,title = "new_simulation",plotfile = "new
 		d = pl.genfromtxt(filename, names=True)
 
 		# observed quantities
-		Z = pl.array([chargeNumber(id) for id in d['ID'].astype(int)])  # element
-		Z0 = pl.array([chargeNumber(id) for id in d['ID0'].astype(int)])  # element at source
-		A = pl.array([massNumber(id) for id in d['ID'].astype(int)])  # atomic mass number
+		Z = pl.array([chargeNumber(int(id)) for id in d['ID']])  # element
+		Z0 = pl.array([chargeNumber(int(id)) for id in d['ID0']])  # element at source
+		A = pl.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
 		lE = pl.log10(d['E']) + 18  # energy in log10(E/eV))
 		num = len(Z0)
 		energy0 = d['E0']
@@ -946,8 +946,8 @@ def plot_errors_parts(title = "new_simulation",plotfile = "new_simulation",plott
 			
 			if (d2.ndim == 2):
 				# observed quantities
-				Z = pl.array([chargeNumber(id) for id in d['ID'].astype(int)])  # element
-				A = pl.array([massNumber(id) for id in d['ID'].astype(int)])  # atomic mass number
+				Z = pl.array([chargeNumber(int(id)) for id in d['ID']])  # element
+				A = pl.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
 				lE = pl.log10(d['E']) + 18  # energy in log10(E/eV))
 				
 				# identify mass groups
@@ -1042,8 +1042,8 @@ def chi2_auger(title = "new_simulation0"):
 	data = np.genfromtxt(filename, names=True)
 	
 	# observed quantities
-	Z = pl.array([chargeNumber(id) for id in data['ID'].astype(int)])  # element
-	A = pl.array([massNumber(id) for id in data['ID'].astype(int)])  # atomic mass number
+	Z = pl.array([chargeNumber(int(id)) for id in data['ID']])  # element
+	A = pl.array([massNumber(int(id)) for id in data['ID']])  # atomic mass number
 	
 	# identify mass groups
 	idx1 = A == 1
@@ -1117,8 +1117,8 @@ def chi2_particles_auger(title = "new_simulation0"):
 	data = np.genfromtxt(filename, names=True)
 	
 	# observed quantities
-	Z = pl.array([chargeNumber(id) for id in data['ID'].astype(int)])  # element
-	A = pl.array([massNumber(id) for id in data['ID'].astype(int)])  # atomic mass number
+	Z = pl.array([chargeNumber(int(id)) for id in data['ID']])  # element
+	A = pl.array([massNumber(int(id)) for id in data['ID']])  # atomic mass number
 	
 	# identify mass groups
 	idx1 = A == 1
@@ -1181,8 +1181,8 @@ def chi2_global_auger(title = "new_simulation"):
 	data = np.genfromtxt(filename, names=True)
 	
 	# observed quantities
-	Z = pl.array([chargeNumber(id) for id in data['ID'].astype(int)])  # element
-	A = pl.array([massNumber(id) for id in data['ID'].astype(int)])  # atomic mass number
+	Z = pl.array([chargeNumber(int(id)) for id in data['ID']])  # element
+	A = pl.array([massNumber(int(id)) for id in data['ID']])  # atomic mass number
 	
 	# identify mass groups
 	idx1 = A == 1
@@ -1228,8 +1228,8 @@ def chi2_global_augerparts(title = "new_simulation", parts = 1):
 			
 			if (datab.ndim == 2):
 				# observed quantities
-				Z = pl.array([chargeNumber(int(id)) for id in data['ID'].astype(int)])  # element
-				A = pl.array([massNumber(int(id)) for id in data['ID'].astype(int)])  # atomic mass number
+				Z = pl.array([chargeNumber(int(id)) for id in data['ID']])  # element
+				A = pl.array([massNumber(int(id)) for id in data['ID']])  # atomic mass number
 				
 				# identify mass groups
 				idx1 = A == 1
@@ -1279,9 +1279,9 @@ def chi2_global_augerrcut(title = "new_simulation",rcut = 21.):
 	data = np.genfromtxt(filename, names=True)
 	
 	# observed quantities
-	Z = pl.array([chargeNumber(id) for id in data['ID'].astype(int)])  # element
-	Z0 = pl.array([chargeNumber(id) for id in data['ID0'].astype(int)])  # element
-	A = pl.array([massNumber(id) for id in data['ID'].astype(int)])  # atomic mass number
+	Z = pl.array([chargeNumber(int(id)) for id in data['ID']])  # element
+	Z0 = pl.array([chargeNumber(int(id)) for id in data['ID0']])  # element
+	A = pl.array([massNumber(int(id)) for id in data['ID']])  # atomic mass number
 	num = len(Z0)
 	energy0 = data['E0']
 	
@@ -1335,9 +1335,9 @@ def chi2_global_augerrcut_separate(fractions,title = "new_simulation",rcut = 21.
 		data = np.genfromtxt(filename, names=True)
 		
 		# observed quantities
-		Z = pl.array([chargeNumber(id) for id in data['ID'].astype(int)])  # element
-		Z0 = pl.array([chargeNumber(id) for id in data['ID0'].astype(int)])  # element
-		A = pl.array([massNumber(id) for id in data['ID'].astype(int)])  # atomic mass number
+		Z = pl.array([chargeNumber(int(id)) for id in data['ID']])  # element
+		Z0 = pl.array([chargeNumber(int(id)) for id in data['ID0']])  # element
+		A = pl.array([massNumber(int(id)) for id in data['ID']])  # atomic mass number
 		num = len(Z0)
 		energy0 = data['E0']
 		

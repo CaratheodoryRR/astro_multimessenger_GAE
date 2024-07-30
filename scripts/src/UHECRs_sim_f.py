@@ -404,8 +404,8 @@ def best_fit_plot_parts(parts, num, nplots = 5, plot_types = ('chi2', 'sqerr', '
                         
                     if (d2.ndim == 2):
                         # observed quantities
-                        Z = np.array([chargeNumber(int(id)) for id in d['ID'].astype(int)])  # element
-                        A = np.array([massNumber(int(id)) for id in d['ID'].astype(int)])  # atomic mass number
+                        Z = np.array([chargeNumber(int(id)) for id in d['ID']])  # element
+                        A = np.array([massNumber(int(id)) for id in d['ID']])  # atomic mass number
                         lE = np.log10(d['E']) + 18  # energy in log10(E/eV))
                         
                         # identify mass groups
