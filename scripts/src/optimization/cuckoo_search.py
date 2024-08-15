@@ -1,3 +1,5 @@
+import re
+import pickle
 import numpy as np
 
 from pathlib import Path
@@ -6,18 +8,82 @@ from scipy.stats import (levy_stable, uniform, norm)
 from ..utils.general import rescale_from_normal
 from .objective_functions import (rcutRange, alphaRange)
 
-def save_checkpoint(checkpointArr, outDir, gen):
-    numOfParams = checkpointArr.shape[1]-1
-    header = (22*' ').join(['param{}'.format(i+1) for i in range(numOfParams)] + ['chi2'])
-    np.savetxt(fname=outDir.joinpath('generation_{}.checkpoint'.format(gen)),
-               X=checkpointArr,
-               header=header,
-               delimiter='    ')
+regChkPattern = re.compile(r'\d+')
+extract_checkpoint_generation = lambda checkpointFileName: int(regChkPattern.search(checkpointFileName).group())
 
-def load_checkpoint(checkpointFile):
-    assert Path(checkpointFile).exists, 'Checkpoint file does not exist!'
-    arr = np.loadtxt(fname=checkpointFile)
-    return arr
+class checkpoint_state:
+    checkpointPickled = 'generation_state.pkl'
+    
+    def __init__(self, checkpointDir, igen=0, data=None):
+        self.igen = igen
+        self._data = data
+        self.__checkpointDir = Path(checkpointDir)
+        self.pickleFile = self.__checkpointDir.joinpath(checkpoint_state.checkpointPickled)
+        
+    def update_gen_counter(self):
+        self.igen += 1
+    
+    @property
+    def data(self):
+        if self._data is not None:
+            return self._data.copy()
+    
+    @data.setter
+    def data(self, value):
+        if (not isinstance(value, np.ndarray)) and (value.ndim != 2):
+            raise ValueError("Data must be a 2D numpy array!")
+        self._data = value.copy()
+    
+    def save_state(self, fileType):
+        if fileType.lower() == 'text':
+            self._save_state_to_txt()
+        elif fileType.lower() == 'pickle':
+            self._pickle_dump_state()
+        else:
+            raise ValueError("Only 'text' and 'pickle' file types supported!")
+        
+    def load_state(self, checkpointFile):
+        suffix = Path(checkpointFile).suffix.lower()
+        if suffix == '.checkpoint':
+            self._load_state_from_txt(textFile=checkpointFile)
+        elif suffix in {'.pkl', '.pickle'}:
+            self.pickleFile = Path(checkpointFile)
+            self._pickle_load_state()
+        else:
+            raise ValueError("File must be in an appropriate format extension (.checkpoint, .pkl, or .pickle)")
+    
+    def _save_state_to_txt(self):
+        numOfParams = self.data.shape[1]-1
+        header = (22*' ').join([f'param{i+1}' for i in range(numOfParams)] + ['chi2'])
+        np.savetxt(fname=self.__checkpointDir.joinpath(f'generation_{self.igen}.checkpoint'),
+                   X=self.data,
+                   header=header,
+                   delimiter='    ')
+    
+    def _load_state_from_txt(self, textFile):
+        if not Path(textFile).exists():
+            raise FileNotFoundError("Checkpoint text file does not exist!")
+        self.data = np.loadtxt(fname=textFile)
+        self.igen = extract_checkpoint_generation(Path(textFile).name)
+    
+    def _pickle_dump_state(self):
+        with open(self.pickleFile, 'wb') as handle:
+            pickle.dump(self, handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+    def _pickle_load_state(self):
+        if not self.pickleFile.exists():
+            raise FileNotFoundError("Checkpoint pickle file does not exist!")
+        with open(self.pickleFile, 'rb') as handle:
+            loadedState = pickle.load(handle)
+            self.__dict__.update(loadedState.__dict__)
+    
+
+def find_ordered_checkpoints(checkpointDir):
+    checkpointFiles = Path(checkpointDir).glob('*.checkpoint')
+    
+    orderedCheckpointFiles = sorted(checkpointFiles, key=extract_checkpoint_generation)
+    
+    return orderedCheckpointFiles
 
 def from_raw_to_real(arr):
     arrCopy = arr.copy()
@@ -61,9 +127,13 @@ def gen_population(size, *args):
 def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, loadCheckpoint=None, **kwargs):
     drop = int(round(nHosts*pa))
     
+    currentState = checkpoint_state(checkpointDir=checkpointDir)
     if loadCheckpoint is not None:
-        print('Loading checkpoint {}'.format(loadCheckpoint))
-        pts = load_checkpoint(checkpointFile=loadCheckpoint)
+        print(f'Loading checkpoint {loadCheckpoint}')
+        
+        currentState.load_state(checkpointFile=loadCheckpoint)
+        
+        pts = currentState.data
         ptNum = len(pts)
         if ptNum > nHosts:
             pts = pts[:nHosts]
@@ -77,10 +147,12 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
         print('Generating initial population...')
         pts = np.column_stack((r, f(r)))
     
+    finalGen = maxIter + currentState.igen
     N = nHosts - drop
     topNOld = pts[:N].copy()
     for i in range(maxIter):
-        print('\n\n\nGENERATION {} OF {}'.format(i+1, maxIter))
+        currentState.update_gen_counter()
+        print(f'\n\n\nGENERATION {currentState.igen} OF {finalGen}')
         rNew = levy_advance(r0=pts[:,:-1], scale=1, **kwargs)
         rNew = periodic_bc(rNew, *ranges)
         print('\n\nLevy flight...')
@@ -93,9 +165,8 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
         
         if (checkpointDir is not None) and ((pts[:N]!=topNOld).any() or i==maxIter-1):
             topNOld = pts[:N].copy()
-            save_checkpoint(checkpointArr=pts,
-                            outDir=checkpointDir, 
-                            gen=i+1)
+            currentState.data = pts.copy()
+            currentState.save_state(fileType='text')
         
         rRand = gen_population(drop, *ranges)  
         print('\n\nRandom mutation...')
@@ -110,7 +181,10 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
                                                                                                              value=best[-3]),
                                                                                          rescale_from_normal(interval=alphaRange, 
                                                                                                              value=best[-2])))
+        currentState.data = pts.copy()
+        currentState.save_state(fileType='pickle')
+        
+    currentState.data = pts[pts[:,-1].argsort()]
+    currentState.save_state(fileType='text')
 
-    pts = pts[pts[:,-1].argsort()]
-    save_checkpoint(checkpointArr=pts, outDir=checkpointDir, gen='last')
     return from_raw_to_real(arr=pts[:-drop])
