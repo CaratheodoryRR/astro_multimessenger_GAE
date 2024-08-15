@@ -50,12 +50,7 @@ def run(
     if stopEnergy is None:
         stopEnergy = minEnergy
         
-    fname_func = lambda outPath, ith, name, ext: '{0}/{1}_{4}_{2}_of_{3}.{5}'.format(outPath,
-                                                                                     fnameOutput, 
-                                                                                     ith, 
-                                                                                     parts,
-                                                                                     name,
-                                                                                     ext)
+    fname_func = lambda outPath, ith, name, ext: f'{outPath}/{fnameOutput}_{name}_{ith}_of_{parts}.{ext}'
         
         
     cpf.minE = 10.**minEnergy * eV
@@ -79,21 +74,15 @@ def run(
     
     outDirEG = outDir.joinpath('Extra-Galactic-part')
     flu.check_dir(outDirEG)
-    garbageDir = outDir.joinpath('Garbage')
-    flu.check_dir(garbageDir)
     
     filesDict['extra-galactic'] = [fname_func(outPath=outDirEG,ith=i+1,name='Dolag_part',ext='txt.gz') for i in range(parts)]
-    
+    # TODO: Integrity logic (gz files with no events are not necessarily empty)
     fileIntegrity = [(Path(f).exists() and flu.not_empty_file(f)) for f in filesDict['extra-galactic']]
     
     if prop != 'galactic' or not all(fileIntegrity):
         partNum = (num*1000) // parts
         
-        run_extra_galactic_part(filesDict={'extra-galactic':[f for (f, integrity) in zip(filesDict['extra-galactic'], fileIntegrity) if not integrity],
-                                           'garbage':[fname_func(outPath=garbageDir,
-                                                      ith=i+1,
-                                                      name='garbage_Dolag_part',
-                                                      ext='txt') for (i, integrity) in enumerate(fileIntegrity) if not integrity]},
+        run_extra_galactic_part(filesDict={'extra-galactic':[f for (f, integrity) in zip(filesDict['extra-galactic'], fileIntegrity) if not integrity]},
                                 kwargsProp=kwargsProp,
                                 srcType=srcType,
                                 partNum=partNum,
@@ -114,7 +103,6 @@ def run(
     
     if prop != 'extra-galactic':
         filesDict['galactic'] = [fname_func(outPath=outDirG,ith=i+1,name='JF12_part',ext='txt') for i in range(parts)]
-        filesDict['garbage'] = [fname_func(outPath=garbageDir,ith=i+1,name='garbage_JF12_part',ext='txt') for i in range(parts)]
         
         run_galactic_part(filesDict=filesDict,
                           rObs=1*kpc,
@@ -151,30 +139,26 @@ def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, kappa, **kw
     # Observer 2 (barely farther than the farthest, for speeding things up)
     test_obs = Observer()
     test_obs.add(ObserverSurface( Sphere(Vector3d(0), prop_3D.farthestSourceDistance.get(srcType)) ))
+    test_obs.setDeactivateOnDetection(True)
+    sim.add(test_obs)
 
     print('\n\n\t\tFIRST STAGE: EXTRAGALACTIC PROPAGATION\n ')
 
     # run simulation
     outputs = [TextOutput(fname, Output.Everything) for fname in filesDict['extra-galactic']]
-    outputs2 = [TextOutput(fname, Output.Event3D) for fname in filesDict['garbage']]
     
     parts = len(outputs)
-    for i, (output, output2, dolagFileName) in enumerate(zip(outputs, outputs2, filesDict['extra-galactic'])):
-        print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
+    for i, (output, dolagFileName) in enumerate(zip(outputs, filesDict['extra-galactic'])):
+        print(f'\n\tRUNNING PART {i+1} OF {parts}\n')
         
         EG_obs.onDetection( output )
         EG_obs.setDeactivateOnDetection(True)
         sim.add(EG_obs)
         
-        test_obs.onDetection( output2 )
-        test_obs.setDeactivateOnDetection(True)
-        sim.add(test_obs)
-        
         sim.run(sources, partNum)
         
-        print('Results successfully saved at {}'.format(dolagFileName))
+        print(f'Results successfully saved at {dolagFileName}')
         output.close()
-        sim.remove(sim.size()-1)
         sim.remove(sim.size()-1)
 
 
@@ -194,37 +178,31 @@ def run_galactic_part(filesDict, rObs, **kwargsSim):
     # Observer 2 (barely greater than the galaxy, for speeding things up)
     test_obs = Observer()
     test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rGalaxy) ))
+    test_obs.setDeactivateOnDetection(True)
+    sim.add(test_obs)
 
     outputs = [TextOutput(fname, Output.Event3D) for fname in filesDict['galactic']]
-    outputs2 = [TextOutput(fname, Output.Event3D) for fname in filesDict['garbage']]
 
     print('\n\n\t\tSECOND STAGE: GALACTIC PROPAGATION\n ')
 
     input = ParticleCollector()
     parts = len(outputs)
-    for i, (output, output2, EGFiles) in enumerate(zip(outputs, outputs2, filesDict['extra-galactic'])):
-        print('\n\tRUNNING PART {0} OF {1}\n'.format(i+1, parts))
-        input.load(EGFiles)
+    for i, (output, EGFile) in enumerate(zip(outputs, filesDict['extra-galactic'])):
+        print(f'\n\tRUNNING PART {i+1} OF {parts}\n')
+        input.load(EGFile)
         
-        inputsize = len(input)
-        print('Number of candidates: {}\n'.format(inputsize))
+        print(f'Number of candidates: {len(input)}\n')
         
         G_obs.onDetection( output )
         G_obs.setDeactivateOnDetection(True)
         sim.add(G_obs)
-
-        test_obs.onDetection( output2 )
-        test_obs.setDeactivateOnDetection(True)
-        sim.add(test_obs)
         
         sim.run(input.getContainer())
+        input.clearContainer()
         
         output.close()
-        output2.close()
+        sim.remove(sim.size()-1)
         
-        sim.remove(sim.size()-1)
-        sim.remove(sim.size()-1)
-        input.clearContainer()
     
 
 def args_parser_function():
