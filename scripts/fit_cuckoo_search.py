@@ -4,9 +4,9 @@ import src.optimization.objective_functions as objf
 
 from pathlib import Path
 from src.UHECRs_sim_f import A_Z
-from src.optimization.cuckoo_search import cuckoo_search
 from src.utils.file_utils import (check_dir, del_by_extension)
 from src.loaders.fields import (setting_dolag_field, setting_jf12_field)
+from src.optimization.cuckoo_search import (cuckoo_search, find_ordered_checkpoints)
 
 from one_dimensional_propagation import run as run1D
 from complete_propagation_Dolag_JF12 import run as run3D
@@ -18,8 +18,8 @@ simType = '3D'
 ##############################################################################################################
     
 root = '/home/caratheodory/development/astro_multimessenger_GAE/'
-sourcesFile = Path(root).joinpath('data/EG_{}_sources.txt'.format(simType))
-outDir = Path('./test_{}/'.format(simType))
+sourcesFile = Path(root).joinpath(f'data/EG_{simType}_sources.txt')
+outDir = Path(f'./test_{simType}/')
 numThousands = 10**3
 noInteractions = False
 minEnergy = 19.0
