@@ -42,6 +42,7 @@ def chi2_obj_func(runPropFunc, sample, pattern, chi2Thres, bins=pao.ebins, **kwa
         simN, _, __ = events_from_files(fileNames=eventFiles, bins=bins)
         idx = np.abs(pao.ebins-bins[0]).argmin()
         print(f'Events per bin: {simN}')
+        print(f'Events per bin: {simN}')
         chi2 = err_parameter_handler(errorType='chi2', simN=simN, paoN=pao.auger[idx:idx+len(bins)])
         chi2Container.append(chi2)
         print(f'Associated chi2: {chi2:.2f}')

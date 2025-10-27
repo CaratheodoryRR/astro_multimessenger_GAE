@@ -148,6 +148,8 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
     for i in range(maxIter):
         currentState.update_gen_counter()
         print(f'\n\n\nGENERATION {currentState.igen} OF {finalGen}')
+        currentState.update_gen_counter()
+        print(f'\n\n\nGENERATION {currentState.igen} OF {finalGen}')
         rNew = levy_advance(r0=pts[:,:-1], scale=1, **kwargs)
         rNew = periodic_bc(rNew, *ranges)
         print('\n\nLevy flight...')
