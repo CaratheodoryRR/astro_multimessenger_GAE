@@ -1,12 +1,10 @@
 import numpy as np
-
 from crpropa import *
 
 def source_energy_spectrum(alpha, rcut=np.inf):
-    
     powerLaw = '(E/EeV)^{}'.format(-alpha)
     exponentialCutOff = '( (E > Z*{0}) ? exp(1 - E/(Z*{0})) : 1 )'.format(rcut)
-    
+
     return '{}*{}'.format(powerLaw, exponentialCutOff)
 
 def set_interactions(sim, model):
