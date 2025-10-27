@@ -10,7 +10,7 @@ from src.crpropa_building_blocks import prop_3D
 from src.utils.general import (get_dict_from_yaml, print_args)
 from src.utils.coords import (collector_coord_transformation, galCenSGVec)
 from src.crpropa_building_blocks.prop_general import source_energy_spectrum
-from src.loaders.fields import (setting_dolag_field, setting_jf12_field, setting_hackstein_field)
+from src.loaders.fields import (setting_dolag_field, setting_uf23_field, setting_jf12_field, setting_hackstein_field)
 
 # We model the galaxy as a sphere of radius 20 kpc
 rGalaxy = 20.*kpc
@@ -276,7 +276,7 @@ def main(args):
 
     if args.prop != 'extra-galactic': 
         print('Setting up JF12 Galactic Magnetic Field...')
-        JF12_field = setting_jf12_field()
+        JF12_field = setting_uf23_field()
         print('Done!\n')
     else:
         JF12_field = None
