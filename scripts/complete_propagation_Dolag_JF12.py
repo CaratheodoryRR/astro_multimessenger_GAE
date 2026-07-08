@@ -147,8 +147,8 @@ def run_extra_galactic_part(filesDict, kwargsProp, srcType, partNum, kappa, **kw
     # Observer 2 (barely farther than the farthest, for speeding things up)
     test_obs = Observer()
     test_obs.add(ObserverSurface( Sphere(galCenSGVec, prop_3D.farthestSourceDistance.get(srcType)) ))
-    test_obs.add( ObserverMinimumEnergy( cpf.stopE ) )
-    test_obs.add( ObserverTrajectoryLength( cpf.maxTrajectoryL ) )
+    test_obs.add( MinimumEnergy( cpf.stopE ) )
+    test_obs.add( TrajectoryLength( cpf.maxTrajectoryL ) )
     test_obs.setDeactivateOnDetection(True)
     sim.add(test_obs)
 
@@ -187,8 +187,8 @@ def run_galactic_part(filesDict, rObs, **kwargsSim):
     # Observer 2 (barely greater than the galaxy, for speeding things up)
     test_obs = Observer()
     test_obs.add(ObserverSurface( Sphere(Vector3d(0), 1.01*rGalaxy) ))
-    test_obs.add( ObserverMinimumEnergy( cpf.stopE ) )
-    test_obs.add( ObserverTrajectoryLength( cpf.maxTrajectoryL ) )
+    test_obs.add( MinimumEnergy( cpf.stopE ) )
+    test_obs.add( TrajectoryLength( cpf.maxTrajectoryL ) )
     test_obs.setDeactivateOnDetection(True)
     sim.add(test_obs)
 
