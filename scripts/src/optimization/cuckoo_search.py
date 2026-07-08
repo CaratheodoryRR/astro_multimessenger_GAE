@@ -136,7 +136,7 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
             r = gen_population(nHosts-ptNum, *ranges)
             print('Generating missing values...')
             pts0 = np.column_stack((r, f(r)))
-            pts = np.row_stack((pts.copy(), pts0))
+            pts = np.vstack((pts.copy(), pts0))
     else:
         r = gen_population(nHosts, *ranges)
         print('Generating initial population...')
