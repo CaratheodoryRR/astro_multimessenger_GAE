@@ -67,6 +67,7 @@ check_dir(checkpointDir)
 # orderedCheckpointFiles = find_ordered_checkpoints(checkpointDir)
 # checkpoint = orderedCheckpointFiles[-1] if (len(orderedCheckpointFiles) > 0) else None
 
+checkpoint_file = checkpointDir.joinpath('generation_state.pkl')
 bfResult = cuckoo_search(
                         f=obj_func,
                         nHosts=nHosts,
@@ -74,7 +75,7 @@ bfResult = cuckoo_search(
                         ranges=ranges,
                         maxIter=maxIter,
                         checkpointDir=checkpointDir,
-                        loadCheckpoint=checkpointDir.joinpath('generation_state.pkl'),
+                        loadCheckpoint=checkpoint_file if checkpoint_file.exists() else None,
                         alpha=1.25,
                         beta=0
                         )
