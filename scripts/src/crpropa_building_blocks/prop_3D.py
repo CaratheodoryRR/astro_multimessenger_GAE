@@ -2,12 +2,12 @@ import numpy as np
 from crpropa import *
 
 from .. import UHECRs_sim_f as cpf
-from ..loaders.fields import dolag_grid
+from ..loaders.fields import DolagGrid
 from .prop_general import set_interactions
 from ..utils.coords import coordinate_transformation_handler
 
 farthestSourceDistance = {
-                        'grid': np.sqrt(3)*dolag_grid().size/2,
+                        'grid': np.sqrt(3)*DolagGrid().size/2,
                         'point-like': 100.*Mpc,
                         'random': 100.*Mpc
                         }
@@ -89,7 +89,7 @@ def grid_like_sources(srcPath, spectrumStr, nucleiFracs, rigidityLimits=False):
     sourceTemplate = source_template(spectrumStr=spectrumStr, nucleiFracs=nucleiFracs)
 
     # Source Density Grid
-    dolagConfig = dolag_grid()
+    dolagConfig = DolagGrid()
     mgrid = Grid1f( dolagConfig.boxOrigin, dolagConfig.gridSize, dolagConfig.spacing )
     loadGrid(mgrid, str(srcPath))
 
