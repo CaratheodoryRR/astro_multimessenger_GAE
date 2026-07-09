@@ -66,7 +66,7 @@ def from_galactic_to_cartesian(sourcePositions):
                                 sourcePositions['Latitude']*u.radian,
                                 sourcePositions['Distance']*u.Mpc,
                                 frame='galactic')
-    cartCoords = to_named_cartesian(galCoords.icrs.cartesian.xyz.value.T)
+    cartCoords = to_named_cartesian(galCoords.transform_to(coord.Supergalactic()).cartesian.xyz.value.T)
 
     return cartCoords
 
@@ -75,7 +75,7 @@ def from_supergalactic_to_cartesian(sourcePositions):
                                 sourcePositions['SLatitude']*u.radian,
                                 sourcePositions['Distance']*u.Mpc,
                                 frame='supergalactic')
-    cartCoords = to_named_cartesian(sgalCoords.icrs.cartesian.xyz.value.T)
+    cartCoords = to_named_cartesian(sgalCoords.cartesian.xyz.value.T)
 
     return cartCoords
 
@@ -84,6 +84,6 @@ def from_icrs_to_cartesian(sourcePositions):
                                 sourcePositions['DEC']*u.radian,
                                 sourcePositions['Distance']*u.Mpc,
                                 frame='icrs')
-    cartCoords = to_named_cartesian(icrsCoords.cartesian.xyz.value.T)
+    cartCoords = to_named_cartesian(icrsCoords.transform_to(coord.Supergalactic()).cartesian.xyz.value.T)
 
     return cartCoords
