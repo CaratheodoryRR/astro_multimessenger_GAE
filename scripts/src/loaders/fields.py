@@ -55,9 +55,9 @@ def setting_uf23_field(modelIdx=0, striated=True, turbulent=True):
     uf23_coherent = UF23Field(modelIdx) # UF23 regular modelIdx model (default: base)
 
     if striated:
-        planck_jf12_random.randomTurbulent() # Activate random turbulent field
-    if turbulent:
         planck_jf12_random.randomStriated() # Activate random striated field
+    if turbulent:
+        planck_jf12_random.randomTurbulent() # Activate random turbulent field
 
     # Superposition of fields
     gmf = MagneticFieldList()
