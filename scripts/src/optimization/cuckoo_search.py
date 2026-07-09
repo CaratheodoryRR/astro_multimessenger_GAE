@@ -30,7 +30,7 @@ class checkpoint_state:
 
     @data.setter
     def data(self, value):
-        if (not isinstance(value, np.ndarray)) and (value.ndim != 2):
+        if (not isinstance(value, np.ndarray)) or (value.ndim != 2):
             raise ValueError("Data must be a 2D numpy array!")
         self._data = value.copy()
 
