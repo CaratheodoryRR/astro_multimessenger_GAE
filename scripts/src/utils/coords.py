@@ -5,7 +5,7 @@ from crpropa import Vector3d
 
 state = coord.galactocentric_frame_defaults.get_from_registry("latest")
 state["parameters"]["z_sun"] = 0
-state["parameters"]["galcen_v_sun"] = (0, 0, 0)
+state["parameters"]["galcen_v_sun"] = coord.CartesianDifferential(0, 0, 0, unit=u.km/u.s)
 state["parameters"]["galcen_distance"] = 8.5*u.kpc
 
 coord.galactocentric_frame_defaults.register(name="JF12", **state)
