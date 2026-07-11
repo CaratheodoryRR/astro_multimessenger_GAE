@@ -27,7 +27,7 @@ else:
     arr = np.genfromtxt(checkpoints[0])
 
     for cp in checkpoints[1:]:
-        arr = np.row_stack((arr, np.genfromtxt(cp)))
+        arr = np.vstack((arr, np.genfromtxt(cp)))
 
     ranking = pd.DataFrame(from_raw_to_real(arr), columns=['H', 'He', 'N', 'Si', 'Fe', 'Rcut', 'alpha', 'chi2'])
     ranking.drop_duplicates(inplace=True)

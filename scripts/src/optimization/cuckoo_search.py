@@ -30,7 +30,7 @@ class checkpoint_state:
 
     @data.setter
     def data(self, value):
-        if (not isinstance(value, np.ndarray)) and (value.ndim != 2):
+        if (not isinstance(value, np.ndarray)) or (value.ndim != 2):
             raise ValueError("Data must be a 2D numpy array!")
         self._data = value.copy()
 
@@ -136,7 +136,7 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
             r = gen_population(nHosts-ptNum, *ranges)
             print('Generating missing values...')
             pts0 = np.column_stack((r, f(r)))
-            pts = np.row_stack((pts.copy(), pts0))
+            pts = np.vstack((pts.copy(), pts0))
     else:
         r = gen_population(nHosts, *ranges)
         print('Generating initial population...')
@@ -146,8 +146,6 @@ def cuckoo_search(f, nHosts, pa, ranges, maxIter=10**3, checkpointDir=None, load
     N = nHosts - drop
     topNOld = pts[:N].copy()
     for i in range(maxIter):
-        currentState.update_gen_counter()
-        print(f'\n\n\nGENERATION {currentState.igen} OF {finalGen}')
         currentState.update_gen_counter()
         print(f'\n\n\nGENERATION {currentState.igen} OF {finalGen}')
         rNew = levy_advance(r0=pts[:,:-1], scale=1, **kwargs)
